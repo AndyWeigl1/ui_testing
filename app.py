@@ -4,7 +4,7 @@ import customtkinter as ctk
 
 from components.navbar import ModernNavbar
 from components.status_bar import StatusIndicator
-from pages import AboutPage, ProcessPage, ProjectsPage, SettingsPage
+from pages import AboutPage, ProcessPage, ProjectsPage, SOPsPage, SettingsPage
 from services.script_runner import ScriptRunner
 from utils.event_bus import get_event_bus, Events
 from utils.state_manager import get_state_manager
@@ -123,6 +123,11 @@ class ModernUI(ctk.CTk):
                 self.script_runner
             ),
             'Projects': ProjectsPage(
+                self.page_container,
+                self.state_manager,
+                self.event_bus
+            ),
+            'SOPs': SOPsPage(  # Add this
                 self.page_container,
                 self.state_manager,
                 self.event_bus
