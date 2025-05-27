@@ -6,7 +6,7 @@ WINDOW_SIZE = (700, 600)
 MIN_SIZE = (700, 600)
 
 # Navigation
-NAV_ITEMS = ["About", "Projects", "Process", "Settings"]
+NAV_ITEMS = ["About", "Projects", "SOPs", "Process", "Settings"]
 DEFAULT_PAGE = "About"
 
 # Font settings
