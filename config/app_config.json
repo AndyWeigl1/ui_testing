@@ -1,0 +1,16 @@
+{
+  "ui": {
+    "theme": "dark",
+    "font_size": 12,
+    "window_width": 908,
+    "window_height": 606,
+    "auto_scroll": true
+  },
+  "scripts": {
+    "max_concurrent": 3,
+    "timeout_seconds": 300,
+    "auto_save_output": true,
+    "output_directory": "outputs"
+  },
+  "debug_mode": false
+}
