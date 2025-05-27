@@ -34,7 +34,11 @@ class ProcessPage(BasePage):
         """Set up the Process page UI"""
         # Configure grid
         self.grid_columnconfigure(0, weight=1)
-        self.grid_rowconfigure(1, weight=1)
+
+        # Explicitly set weights for all rows within ProcessPage:
+        self.grid_rowconfigure(0, weight=0)  # For header_frame (script path, etc.)
+        self.grid_rowconfigure(1, weight=1)  # For self.console (this row should expand/shrink)
+        self.grid_rowconfigure(2, weight=0)  # For self.control_panel
         
         # Page header
         header_frame = ctk.CTkFrame(self, fg_color="transparent")
