@@ -55,14 +55,16 @@ class ProjectsPage(BasePage):
                 'description': 'Processes CSV files and generates reports',
                 'path': '/scripts/data_processor.py',
                 'last_run': '2024-01-15',
-                'status': 'success'
+                'status': 'success',
+                'sop_id': 'data_processing'  # Add this field
             },
             {
                 'name': 'Web Scraper',
                 'description': 'Extracts data from websites',
                 'path': '/scripts/web_scraper.py',
                 'last_run': '2024-01-14',
-                'status': 'success'
+                'status': 'success',
+                'sop_id': 'web_scraping'  # Add this field
             },
             {
                 'name': 'Backup Automation',
@@ -175,6 +177,19 @@ class ProjectsPage(BasePage):
             command=lambda p=project: self.run_project(p)
         )
         run_btn.grid(row=0, column=0, padx=(0, 5))
+
+        # Add SOP button if project has an associated SOP
+        if project.get('sop_id'):
+            sop_btn = ctk.CTkButton(
+                button_frame,
+                text="📖 SOP",
+                width=80,
+                height=28,
+                fg_color=("#1f6aa5", "#1f6aa5"),
+                hover_color=("#144870", "#144870"),
+                command=lambda p=project: self.open_project_sop(p)
+            )
+            sop_btn.grid(row=0, column=1, padx=5)
         
         edit_btn = ctk.CTkButton(
             button_frame,
@@ -252,3 +267,20 @@ class ProjectsPage(BasePage):
         self.event_bus.subscribe('project.created', lambda data: self.display_projects())
         self.event_bus.subscribe('project.updated', lambda data: self.display_projects())
         self.event_bus.subscribe('project.deleted', lambda data: self.display_projects())
+
+    def open_project_sop(self, project: Dict[str, Any]):
+        """Navigate to the SOPs page and highlight the relevant SOP"""
+        if project.get('sop_id'):
+            # Set state to pass the SOP ID
+            self.set_state('highlight_sop_id', project['sop_id'])
+
+            # Switch to SOPs page
+            self.set_state('current_page', 'SOPs')
+
+            # Publish event
+            self.publish_event('project.sop_requested', {
+                'project': project['name'],
+                'sop_id': project['sop_id']
+            })
+
+            self.show_message(f"Opening SOP for {project['name']}", "info")
