@@ -38,7 +38,6 @@ class ModernUI(ctk.CTk):
         
         # Initialize event bus
         self.event_bus = get_event_bus()
-        self.setup_event_subscriptions()
         self.setup_state_subscriptions()
 
         # Initialize services
@@ -59,27 +58,10 @@ class ModernUI(ctk.CTk):
         # Show initial page
         self.switch_page(DEFAULT_PAGE)
 
-    def setup_event_subscriptions(self):
-        """Set up event subscriptions for the application"""
-        # Subscribe to navigation events
-        self.event_bus.subscribe(Events.NAVIGATION_CHANGED, self.handle_navigation_change)
-        
-        # Subscribe to script events
-        # self.event_bus.subscribe(Events.SCRIPT_STARTED, self.handle_script_started)
-        # self.event_bus.subscribe(Events.SCRIPT_STOPPED, self.handle_script_stopped)
-        self.event_bus.subscribe(Events.SCRIPT_COMPLETED, self.handle_script_completed)
-        self.event_bus.subscribe(Events.SCRIPT_ERROR, self.handle_script_error)
-        
-        # Subscribe to theme events
-        self.event_bus.subscribe(Events.THEME_CHANGED, self.handle_theme_changed)
-        
-        # Subscribe to status events
-        self.event_bus.subscribe(Events.STATUS_CHANGED, self.handle_status_changed)
     
     def setup_state_subscriptions(self):
         """Set up state subscriptions for reactive UI updates"""
         # Subscribe to state changes
-        # self.state_manager.subscribe('script_running', self.on_script_running_changed)
         self.state_manager.subscribe('status', self.on_status_changed)
         self.state_manager.subscribe('theme', self.on_theme_changed)
         self.state_manager.subscribe('current_page', self.on_page_changed)
@@ -192,132 +174,6 @@ class ModernUI(ctk.CTk):
         # Publish theme change event
         self.event_bus.publish(Events.THEME_CHANGED, {'theme': theme})
 
-    def run_script(self):
-        """Start running the script"""
-        if not self.state_manager.get('script_running', False):
-            try:
-                # Clear the output queue before starting
-                self.script_runner.clear_output_queue()
-
-                # Start the script
-                self.script_runner.start()
-                
-                # Update state
-                self.state_manager.set('script_running', True)
-                self.state_manager.set('status', 'running')
-                
-                # Publish script started event
-                current_page = self.state_manager.get('current_page')
-                self.event_bus.publish(Events.SCRIPT_STARTED, {'page': current_page})
-
-                # Schedule UI reset when script completes
-                self.check_script_completion()
-
-            except RuntimeError as e:
-                self.state_manager.set('script_running', False)
-                self.state_manager.set('status', 'error')
-                self.event_bus.publish(Events.SCRIPT_ERROR, {'error': str(e)})
-
-    def stop_script(self):
-        """Stop the running script"""
-        if self.state_manager.get('script_running', False):
-            # Stop the script
-            self.script_runner.stop()
-            
-            # Update state
-            self.state_manager.set('script_running', False)
-            self.state_manager.set('status', 'idle')
-
-            # Publish script stopped event
-            self.event_bus.publish(Events.SCRIPT_STOPPED, {'reason': 'user_request'})
-
-    def check_script_completion(self):
-        """Check if the script has completed and update UI accordingly"""
-        if not self.script_runner.is_running and not self.script_runner.is_alive:
-            # Script has completed successfully
-            self.state_manager.set('script_running', False)
-            self.state_manager.set('status', 'success')
-            self.event_bus.publish(Events.SCRIPT_COMPLETED, {'status': 'success'})
-        else:
-            # Check again in 100ms
-            self.after(100, self.check_script_completion)
-
-    def clear_output(self):
-        """Clear the output console"""
-        self.console.clear()
-        self.console.add_output("Console cleared.", "system")
-
-    def simulate_script(self):
-        """Simulate a running script"""
-        operations = SIMULATION_OPERATIONS
-
-        for i, operation in enumerate(operations):
-            if not self.is_running:
-                break
-
-            self.output_queue.put(("info", operation))
-            time.sleep(SCRIPT_SIMULATION_DELAY)
-
-            # Simulate some detailed output
-            if i == 4:  # Processing records
-                for j in range(5):
-                    if not self.is_running:
-                        break
-                    self.output_queue.put(("info", f"  - Processed record {j + 1}/5"))
-                    time.sleep(0.5)
-
-        if self.is_running:
-            # self.output_queue.put(("success", "Script completed successfully!"))
-            self.is_running = False
-            self.after(0, self.reset_ui_state)
-
-    def reset_ui_state(self):
-        """Reset UI state after script completion"""
-        # Now handled by state subscriptions
-        self.state_manager.set('script_running', False)
-        self.state_manager.set('status', 'idle')
-
-    def check_output_queue(self):
-        """Check for new output messages from the script thread"""
-        try:
-            while True:
-                msg_type, message = self.output_queue.get_nowait()
-                self.console.add_output(message, msg_type)
-        except queue.Empty:
-            pass
-
-        # Schedule next check
-        self.after(OUTPUT_CHECK_INTERVAL, self.check_output_queue)
-
-    # Event Handlers
-    def handle_navigation_change(self, data):
-        """Handle navigation change events"""
-        if data and 'page' in data:
-            pass
-    
-    def handle_script_started(self, data):
-        """Handle script started events"""
-        # UI updates are now handled by state subscriptions
-        current_page = self.state_manager.get('current_page')
-        self.console.add_output(f"Script started from '{current_page}' page...", "success")
-    
-    def handle_script_stopped(self, data):
-        """Handle script stopped events"""
-        # UI updates are now handled by state subscriptions
-        pass
-    
-    def handle_script_completed(self, data):
-        """Handle script completed events"""
-        # UI updates are now handled by state subscriptions
-        # Uncomment if you want completion message:
-        # self.console.add_output("Script completed successfully!", "success")
-        pass
-    
-    def handle_script_error(self, data):
-        """Handle script error events"""
-        # UI updates are now handled by state subscriptions
-        if data and 'error' in data:
-            self.console.add_output(f"Script error: {data['error']}", "error")
     
     def handle_theme_changed(self, data):
         """Handle theme change events"""
@@ -329,11 +185,6 @@ class ModernUI(ctk.CTk):
         """Handle status change events"""
         if data and 'status' in data:
             self.status_indicator.set_status(data['status'])
-    
-    # State subscription callbacks
-    def on_script_running_changed(self, is_running):
-        """Handle script running state changes"""
-        self.control_panel.set_running_state(is_running)
         
     def on_status_changed(self, status):
         """Handle status state changes"""
