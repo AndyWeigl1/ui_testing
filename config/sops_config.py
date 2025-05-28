@@ -17,7 +17,8 @@ SOPS_DATA = [
         'link': 'https://example.com/sop/data-processing',
         'icon': '📊',
         'tags': ['CSV', 'Data', 'Reports'],
-        'related_scripts': ['data_processor.py', 'csv_cleaner.py']
+        'related_scripts': ['data_processor.py', 'csv_cleaner.py'],
+        'sop_id': 'data_processing'  # Add this field
     },
     {
         'id': 'web_scraping',
@@ -31,7 +32,29 @@ SOPS_DATA = [
         'tags': ['Web', 'Scraping', 'Automation'],
         'related_scripts': ['web_scraper.py', 'selenium_bot.py']
     },
-    # Add more SOPs here...
+    {
+        'id': 'image_processing',
+        'title': 'Image Processing',
+        'description': 'Batch process images with resizing, optimization, and format conversion',
+        'category': 'Media Processing',
+        'difficulty': 'Beginner',
+        'duration': '10 min',
+        'link': 'https://example.com/sop/image-processing',
+        'icon': '🖼️',
+        'tags': ['Images', 'Media', 'Batch']
+    },
+    {
+        'id': 'api_integration',
+        'title': 'API Integration Guide',
+        'description': 'Connect to external APIs and process responses effectively',
+        'category': 'Integration',
+        'difficulty': 'Advanced',
+        'duration': '45 min',
+        'link': 'https://example.com/sop/api-integration',
+        'icon': '🔌',
+        'tags': ['API', 'Integration', 'REST']
+    },
+
 ]
 
 # Categories configuration
