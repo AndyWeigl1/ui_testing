@@ -10,7 +10,15 @@
     "max_concurrent": 3,
     "timeout_seconds": 300,
     "auto_save_output": true,
-    "output_directory": "outputs"
+    "output_directory": "outputs",
+    "clear_on_run": false,
+    "developer_mode": false
   },
-  "debug_mode": false
+  "debug_mode": true,
+  "advanced": {
+    "log_level": "INFO",
+    "log_to_file": false,
+    "log_file_path": "logs/script_runner.log",
+    "preserve_debug_output": true
+  }
 }
