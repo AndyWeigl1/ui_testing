@@ -18,7 +18,7 @@ class AboutPage(BasePage):
         # Application title
         title_label = ctk.CTkLabel(
             main_container,
-            text="Script Runner",
+            text="AutoBear",
             font=ctk.CTkFont(size=32, weight="bold")
         )
         title_label.grid(row=0, column=0, pady=(0, 10))
