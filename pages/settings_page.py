@@ -74,7 +74,13 @@ class SettingsPage(BasePage):
             command=self.reset_settings
         )
         reset_btn.grid(row=0, column=2, padx=5)
-        
+
+    def on_developer_mode_changed(self):
+        """Handle developer mode toggle in settings"""
+        developer_mode = self.developer_mode_var.get()
+        self.set_state('developer_mode', developer_mode)
+        self.publish_event('developer_mode.changed', {'enabled': developer_mode})
+
     def create_settings_section(self, title: str, parent, row: int) -> ctk.CTkFrame:
         """Create a settings section with consistent styling"""
         section = ctk.CTkFrame(parent)
@@ -183,11 +189,11 @@ class SettingsPage(BasePage):
         )
         line_wrap_check.grid(row=row, column=0, columnspan=2, sticky="w", pady=5)
         row += 1
-        
+
     def create_execution_settings(self, parent):
         """Create script execution settings"""
         row = 0
-        
+
         # Auto-scroll
         self.auto_scroll_var = ctk.BooleanVar(value=True)
         auto_scroll_check = ctk.CTkCheckBox(
@@ -197,7 +203,7 @@ class SettingsPage(BasePage):
         )
         auto_scroll_check.grid(row=row, column=0, columnspan=2, sticky="w", pady=5)
         row += 1
-        
+
         # Clear on run
         self.clear_on_run_var = ctk.BooleanVar(value=False)
         clear_on_run_check = ctk.CTkCheckBox(
@@ -207,11 +213,31 @@ class SettingsPage(BasePage):
         )
         clear_on_run_check.grid(row=row, column=0, columnspan=2, sticky="w", pady=5)
         row += 1
-        
+
+        # Developer mode - NEW ADDITION
+        self.developer_mode_var = ctk.BooleanVar(value=self.get_state('developer_mode', False))
+        developer_mode_check = ctk.CTkCheckBox(
+            parent,
+            text="Developer mode (show debug output)",
+            variable=self.developer_mode_var,
+            command=self.on_developer_mode_changed
+        )
+        developer_mode_check.grid(row=row, column=0, columnspan=2, sticky="w", pady=5)
+
+        # Add help text for developer mode
+        dev_help_label = ctk.CTkLabel(
+            parent,
+            text="    Enables detailed debug output for troubleshooting",
+            font=ctk.CTkFont(size=11),
+            text_color=("gray30", "gray70")
+        )
+        dev_help_label.grid(row=row + 1, column=0, columnspan=2, sticky="w", padx=(25, 0))
+        row += 2
+
         # Output buffer size (placeholder)
         buffer_label = ctk.CTkLabel(parent, text="Output Buffer Size:")
         buffer_label.grid(row=row, column=0, sticky="w", pady=5)
-        
+
         self.buffer_size_var = ctk.StringVar(value="1000 lines")
         buffer_entry = ctk.CTkEntry(
             parent,
@@ -278,7 +304,7 @@ class SettingsPage(BasePage):
         self.font_size_label.configure(text=f"{size}px")
         self.set_state('font_size', size)
         self.publish_event('font_size.changed', {'size': size})
-        
+
     def save_settings(self):
         """Save current settings"""
         # In a real app, this would persist settings to file
@@ -287,12 +313,13 @@ class SettingsPage(BasePage):
             'font_size': self.font_size_var.get(),
             'auto_scroll': self.auto_scroll_var.get(),
             'clear_on_run': self.clear_on_run_var.get(),
+            'developer_mode': self.developer_mode_var.get(),  # Add this line
             'debug_mode': self.debug_mode_var.get(),
         }
-        
+
         # Update state
         self.state_manager.update(settings)
-        
+
         self.show_message("Settings saved successfully!", "success")
         self.publish_event('settings.saved', {'settings': settings})
         
@@ -319,12 +346,13 @@ class SettingsPage(BasePage):
     def import_settings(self):
         """Import settings from file"""
         self.show_message("Settings import not yet implemented", "info")
-        
+
     def on_activate(self):
         """Called when settings page becomes active"""
         super().on_activate()
-        
+
         # Update UI to reflect current state
         self.theme_var.set(self.get_state('theme', 'dark'))
         self.font_size_var.set(self.get_state('font_size', 12))
         self.font_size_label.configure(text=f"{self.font_size_var.get()}px")
+        self.developer_mode_var.set(self.get_state('developer_mode', False))  # Add this line
