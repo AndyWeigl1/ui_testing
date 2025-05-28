@@ -22,7 +22,7 @@ COLORS = {
     "status_running": "#FF9800",
 
     # Output console colors
-    "output_info": "",
+    "output_info": ("gray20", "gray80"),
     "output_success": "#4CAF50",
     "output_error": "#f44336",
     "output_warning": "#FF9800",
