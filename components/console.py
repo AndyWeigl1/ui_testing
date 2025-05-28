@@ -151,72 +151,85 @@ class OutputConsole(ctk.CTkFrame):
         # Show all other standard messages
         return msg_type in always_show
 
-    def add_output(self, message: str, msg_type: str = LogLevel.INFO, force_display: bool = False):
-        """Add a message to the output console with timestamp and filtering
+    def add_output(self, message: str, msg_type: str = "info", force_display: bool = False):
+        """Add a message to the output console with timestamp and filtering"""
+        try:
+            # Normalize message type to string
+            if hasattr(msg_type, 'value'):
+                msg_type = msg_type.value
+            msg_type = str(msg_type).lower()
 
-        Args:
-            message: The message to display
-            msg_type: The type/level of the message (debug, info, success, warning, error, system)
-            force_display: If True, displays the message regardless of developer mode setting
-        """
-        # Check if message should be displayed
-        if not force_display and not self.should_display_message(msg_type):
-            return
+            # Check if message should be displayed
+            if not force_display:
+                if msg_type == "debug" and not self.developer_mode:
+                    return
 
-        timestamp = datetime.now().strftime("%H:%M:%S")
+            timestamp = datetime.now().strftime("%H:%M:%S")
 
-        # Enhanced color coding based on message type
-        color_map = {
-            LogLevel.DEBUG: ("#666666", "#999999"),     # Gray for debug
-            LogLevel.INFO: COLORS.get("output_info", ""),
-            LogLevel.SUCCESS: COLORS["output_success"],
-            LogLevel.WARNING: COLORS["output_warning"],
-            LogLevel.ERROR: COLORS["output_error"],
-            LogLevel.SYSTEM: COLORS["output_system"]
-        }
+            self.output_text.configure(state="normal")
 
-        # Prefixes for different message types in developer mode
-        prefix_map = {
-            LogLevel.DEBUG: "[DEBUG] ",
-            LogLevel.WARNING: "[WARN] ",
-            LogLevel.ERROR: "[ERROR] ",
-        }
+            # Add timestamp
+            self.output_text.insert("end", f"[{timestamp}] ")
+            self.output_text.tag_config("timestamp", foreground="gray")
+            self.output_text.tag_add("timestamp", "end-12c", "end-2c")
 
-        self.output_text.configure(state="normal")
+            # Add prefix for certain types in developer mode
+            if self.developer_mode:
+                if msg_type == "debug":
+                    self.output_text.insert("end", "[DEBUG] ")
+                    self.output_text.tag_config("debug_prefix", foreground="#999999")
+                    self.output_text.tag_add("debug_prefix", "end-9c", "end-1c")
+                elif msg_type == "warning":
+                    self.output_text.insert("end", "[WARN] ")
+                elif msg_type == "error":
+                    self.output_text.insert("end", "[ERROR] ")
 
-        # Add timestamp
-        self.output_text.insert("end", f"[{timestamp}] ", "timestamp")
-
-        # Add prefix if in developer mode
-        if self.developer_mode and msg_type in prefix_map:
-            self.output_text.insert("end", prefix_map[msg_type], msg_type + "_prefix")
-            # Configure prefix color
-            prefix_color = color_map.get(msg_type, "")
-            if prefix_color:
-                self.output_text.tag_config(msg_type + "_prefix", foreground=prefix_color)
-
-        # Add message with color if specified
-        color = color_map.get(msg_type)
-        if color:
-            # Handle tuple colors (light, dark theme)
-            if isinstance(color, tuple):
-                # Get current theme from state manager if available
-                theme = "dark"
-                if self.state_manager:
-                    theme = self.state_manager.get('theme', 'dark')
-                color = color[1] if theme == "dark" else color[0]
-
-            self.output_text.insert("end", f"{message}\n", msg_type)
-            self.output_text.tag_config(msg_type, foreground=color)
-        else:
+            # Add the message
             self.output_text.insert("end", f"{message}\n")
 
-        # Configure timestamp appearance
-        self.output_text.tag_config("timestamp", foreground=COLORS["output_timestamp"])
+            # Apply color to the message line (excluding timestamp and prefix)
+            line_start = self.output_text.index("end-2l linestart")
+            line_end = self.output_text.index("end-1c")
 
-        # Auto-scroll to bottom
-        self.output_text.see("end")
-        self.output_text.configure(state="disabled")
+            # Simple color map without tuples
+            colors = {
+                "debug": "#999999" if self.state_manager and self.state_manager.get('theme') == 'dark' else "#666666",
+                "info": "#e0e0e0" if self.state_manager and self.state_manager.get('theme') == 'dark' else "#333333",
+                "success": "#4CAF50",
+                "warning": "#FF9800",
+                "error": "#f44336",
+                "system": "#2196F3"
+            }
+
+            if msg_type in colors:
+                # Find where the actual message starts (after timestamp and any prefix)
+                msg_start_offset = len(f"[{timestamp}] ")
+                if self.developer_mode:
+                    if msg_type == "debug":
+                        msg_start_offset += len("[DEBUG] ")
+                    elif msg_type == "warning":
+                        msg_start_offset += len("[WARN] ")
+                    elif msg_type == "error":
+                        msg_start_offset += len("[ERROR] ")
+
+                # Apply color only to the message part
+                msg_start = f"{line_start}+{msg_start_offset}c"
+                self.output_text.tag_add(f"msg_{msg_type}", msg_start, line_end)
+                self.output_text.tag_config(f"msg_{msg_type}", foreground=colors[msg_type])
+
+            # Auto-scroll to bottom
+            self.output_text.see("end")
+            self.output_text.configure(state="disabled")
+
+        except Exception as e:
+            print(f"Console error: {e} - Message: {message}, Type: {msg_type}")
+            # Fallback - just insert the message
+            try:
+                self.output_text.configure(state="normal")
+                self.output_text.insert("end", f"{message}\n")
+                self.output_text.configure(state="disabled")
+            except:
+                pass
 
     def clear(self):
         """Clear all output from the console"""
