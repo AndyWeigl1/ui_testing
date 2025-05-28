@@ -2,6 +2,7 @@
 
 import customtkinter as ctk
 from config.themes import COLORS
+from PIL import Image
 from config.settings import (
     NAV_ITEMS, DEFAULT_PAGE, NAVBAR_CORNER_RADIUS,
     NAV_BUTTON_WIDTH, NAV_BUTTON_HEIGHT, BUTTON_CORNER_RADIUS,
@@ -35,22 +36,42 @@ class ModernNavbar(ctk.CTkFrame):
         """Create the logo section"""
         self.logo_frame = ctk.CTkFrame(
             self,
-            fg_color=self.colors["logo_bg"],
+            # Removed fg_color to make it transparent for the image
+            # fg_color=self.colors["logo_bg"],
+            fg_color="transparent", # Make logo frame transparent
             width=LOGO_SIZE,
             height=LOGO_SIZE,
             corner_radius=LOGO_CORNER_RADIUS
         )
-        self.logo_frame.grid(row=0, column=0, padx=(20, 10), pady=10)
+        self.logo_frame.grid(row=0, column=0, padx=(10, 10), pady=5)
         self.logo_frame.grid_propagate(False)
 
-        # Logo slash with rotation effect (simulated)
-        self.logo_label = ctk.CTkLabel(
-            self.logo_frame,
-            text="/",
-            font=ctk.CTkFont(size=18, weight="bold"),
-            text_color=self.colors["logo_text"]
-        )
-        self.logo_label.place(relx=0.5, rely=0.5, anchor="center")
+        # Load and display the image
+        try:
+            # Define the path to your icon
+            icon_path = "assets/icons/kodiak.png" # Make sure this path is correct relative to where your app runs
+            pil_image = Image.open(icon_path)
+            self.logo_image = ctk.CTkImage(light_image=pil_image, dark_image=pil_image, size=(LOGO_SIZE, LOGO_SIZE))
+
+            self.logo_label = ctk.CTkLabel(
+                self.logo_frame,
+                image=self.logo_image,
+                text="" # No text needed
+            )
+            self.logo_label.place(relx=0.5, rely=0.5, anchor="center")
+
+        except FileNotFoundError:
+            # Fallback to text if image not found
+            print(f"Error: Icon image not found at {icon_path}. Using text fallback.")
+            self.logo_label = ctk.CTkLabel(
+                self.logo_frame,
+                text="/", # Fallback text
+                font=ctk.CTkFont(size=18, weight="bold"),
+                text_color=self.colors["logo_text"]
+            )
+            self.logo_label.place(relx=0.5, rely=0.5, anchor="center")
+            # You might want to set a background color for the frame if the image fails to load
+            self.logo_frame.configure(fg_color=self.colors["logo_bg"])
 
     def create_nav_items(self):
         """Create the navigation items"""
@@ -101,11 +122,15 @@ class ModernNavbar(ctk.CTkFrame):
             self.command(item)
 
     def update_theme(self):
-        """Update the navbar colors when theme changes"""
-        # The CTkFrame automatically updates its fg_color
-        # We need to update logo and buttons manually
-        self.logo_frame.configure(fg_color=self.colors["logo_bg"])
-        self.logo_label.configure(text_color=self.colors["logo_text"])
+        """Update the navbar colors when theme changes."""
+
+        # Check if the logo is in image mode (i.e., self.logo_image was successfully created)
+        if hasattr(self, 'logo_image') and self.logo_label.cget("image"):
+            self.logo_frame.configure(fg_color="transparent")
+        else:
+            self.logo_frame.configure(fg_color=self.colors["logo_bg"])
+            if hasattr(self, 'logo_label'):
+                self.logo_label.configure(text_color=self.colors["logo_text"])
 
         # Update all navigation buttons
         for nav_item, btn in self.nav_buttons.items():
