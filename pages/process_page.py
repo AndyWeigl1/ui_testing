@@ -84,7 +84,7 @@ class ProcessPage(BasePage):
         self.browse_btn.grid(row=0, column=2)
         
         # Create output console
-        self.console = OutputConsole(self)
+        self.console = OutputConsole(self, state_manager=self.state_manager)
         self.console.grid(row=1, column=0, padx=20, pady=10, sticky="nsew")
         
         # Create control panel
@@ -98,12 +98,28 @@ class ProcessPage(BasePage):
         
         # Set up output handling
         self.output_manager.set_output_callback(self.console.add_output)
-        
+
     def setup_state_subscriptions(self):
         """Set up state subscriptions for the Process page"""
         # Subscribe to script running state
         self.state_manager.subscribe('script_running', self.on_script_running_changed)
-        
+        # Subscribe to developer mode changes
+        self.state_manager.subscribe('developer_mode', self.on_developer_mode_changed)
+
+    def on_developer_mode_changed(self, enabled):
+        """Handle developer mode state changes"""
+        # Update script runner's developer mode setting
+        if hasattr(self, 'script_runner'):
+            self.script_runner.set_developer_mode(enabled)
+
+        # If a script is currently running, notify the user
+        if self.get_state('script_running', False):
+            mode_text = "enabled" if enabled else "disabled"
+            self.console.add_output(
+                f"Developer mode {mode_text} (will take full effect on next run)",
+                "system"
+            )
+
     def setup_event_subscriptions(self):
         """Set up event subscriptions for the Process page"""
         # Subscribe to script events
@@ -131,37 +147,44 @@ class ProcessPage(BasePage):
         """Browse for a script file"""
         # This will be implemented later when we add file selection
         self.show_message("File browser not yet implemented", "info")
-        
+
     def run_script(self):
         """Start running the script"""
         if not self.get_state('script_running', False):
             try:
                 # Clear the output queue before starting
                 self.script_runner.clear_output_queue()
-                
+
                 # Get script path (for now, None means simulation)
                 script_path = None  # self.script_path_var.get() when implemented
-                
-                # Start the script
-                self.script_runner.start(script_path)
-                
+
+                # Get developer mode setting
+                developer_mode = self.get_state('developer_mode', False)
+
+                # Update script runner's developer mode
+                self.script_runner.set_developer_mode(developer_mode)
+
+                # Start the script with developer mode flag
+                self.script_runner.start(script_path, developer_mode=developer_mode)
+
                 # Update state
                 self.set_state('script_running', True)
                 self.set_state('status', 'running')
                 self.set_state('script_path', script_path or 'simulation')
-                
+
                 # Start output monitoring
                 self.output_manager.start_monitoring()
-                
+
                 # Publish event
                 self.publish_event(Events.SCRIPT_STARTED, {
                     'page': 'Process',
-                    'script': script_path or 'simulation'
+                    'script': script_path or 'simulation',
+                    'developer_mode': developer_mode
                 })
-                
+
                 # Schedule completion check
                 self.check_script_completion()
-                
+
             except RuntimeError as e:
                 self.set_state('script_running', False)
                 self.set_state('status', 'error')
