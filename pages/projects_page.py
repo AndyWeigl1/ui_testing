@@ -3,6 +3,7 @@
 import customtkinter as ctk
 from pages.base_page import BasePage
 from typing import List, Dict, Any
+from components.console import OutputConsole
 
 
 class ProjectsPage(BasePage):
@@ -84,11 +85,15 @@ class ProjectsPage(BasePage):
         
         # Display projects
         self.display_projects()
-        
+
         # Info panel (shown when no projects)
         if not self.projects:
             self.show_empty_state()
-            
+
+        # Create output console with state manager reference
+        self.console = OutputConsole(self, state_manager=self.state_manager)
+        self.console.grid(row=1, column=0, padx=20, pady=10, sticky="nsew")
+
     def display_projects(self):
         """Display the list of projects"""
         # Clear existing widgets
@@ -288,3 +293,4 @@ class ProjectsPage(BasePage):
             })
 
             self.show_message(f"Opening SOP for {project['name']}", "info")
+            
