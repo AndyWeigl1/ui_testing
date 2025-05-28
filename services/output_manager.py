@@ -45,6 +45,7 @@ class OutputManager:
 
             # Display each message
             for msg_type, message in messages:
+                # The console expects (message, msg_type) not (msg_type, message)
                 self.output_callback(message, msg_type)
 
         # Schedule next check if still monitoring
