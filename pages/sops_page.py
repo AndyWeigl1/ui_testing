@@ -12,74 +12,75 @@ class SOPsPage(BasePage):
 
     def __init__(self, parent, state_manager, event_bus, **kwargs):
         # Define SOPs data structure - Easy to extend by adding new entries
-        self.sops_data = [
-            {
-                'id': 'data_processing',
-                'title': 'Data Processing Script',
-                'description': 'Learn how to process CSV files, clean data, and generate reports',
-                'category': 'Data Processing',
-                'difficulty': 'Beginner',
-                'duration': '15 min',
-                'link': 'https://example.com/sop/data-processing',  # Replace with actual links
-                'icon': '📊',
-                'tags': ['CSV', 'Data', 'Reports']
-            },
-            {
-                'id': 'web_scraping',
-                'title': 'Web Scraping Guide',
-                'description': 'Step-by-step guide for setting up and running web scraping scripts',
-                'category': 'Web Automation',
-                'difficulty': 'Intermediate',
-                'duration': '30 min',
-                'link': 'https://example.com/sop/web-scraping',
-                'icon': '🌐',
-                'tags': ['Web', 'Scraping', 'Automation']
-            },
-            {
-                'id': 'backup_automation',
-                'title': 'Backup Automation Setup',
-                'description': 'Configure automated backups for your important files and databases',
-                'category': 'System Administration',
-                'difficulty': 'Intermediate',
-                'duration': '20 min',
-                'link': 'https://example.com/sop/backup-automation',
-                'icon': '💾',
-                'tags': ['Backup', 'Automation', 'System']
-            },
-            {
-                'id': 'image_processing',
-                'title': 'Image Processing Workflow',
-                'description': 'Batch process images with resizing, optimization, and format conversion',
-                'category': 'Media Processing',
-                'difficulty': 'Beginner',
-                'duration': '10 min',
-                'link': 'https://example.com/sop/image-processing',
-                'icon': '🖼️',
-                'tags': ['Images', 'Media', 'Batch']
-            },
-            {
-                'id': 'api_integration',
-                'title': 'API Integration Guide',
-                'description': 'Connect to external APIs and process responses effectively',
-                'category': 'Integration',
-                'difficulty': 'Advanced',
-                'duration': '45 min',
-                'link': 'https://example.com/sop/api-integration',
-                'icon': '🔌',
-                'tags': ['API', 'Integration', 'REST']
-            },
-            {
-                'id': 'database_operations',
-                'title': 'Database Operations',
-                'description': 'Perform CRUD operations and manage database connections',
-                'category': 'Database',
-                'difficulty': 'Intermediate',
-                'duration': '25 min',
-                'link': 'https://example.com/sop/database-operations',
-                'icon': '🗄️',
-                'tags': ['Database', 'SQL', 'CRUD']
-            }
-        ]
+        self.sops_data = SOPS_DATA
+        # self.sops_data = [
+        #     {
+        #         'id': 'data_processing',
+        #         'title': 'lol',
+        #         'description': 'Learn how to process CSV files, clean data, and generate reports',
+        #         'category': 'Data Processing',
+        #         'difficulty': 'Beginner',
+        #         'duration': '15 min',
+        #         'link': 'https://example.com/sop/data-processing',  # Replace with actual links
+        #         'icon': '📊',
+        #         'tags': ['CSV', 'Data', 'Reports']
+        #     },
+        #     {
+        #         'id': 'web_scraping',
+        #         'title': 'Web Scraping Guide',
+        #         'description': 'Step-by-step guide for setting up and running web scraping scripts',
+        #         'category': 'Web Automation',
+        #         'difficulty': 'Intermediate',
+        #         'duration': '30 min',
+        #         'link': 'https://example.com/sop/web-scraping',
+        #         'icon': '🌐',
+        #         'tags': ['Web', 'Scraping', 'Automation']
+        #     },
+        #     {
+        #         'id': 'backup_automation',
+        #         'title': 'Backup Automation Setup',
+        #         'description': 'Configure automated backups for your important files and databases',
+        #         'category': 'System Administration',
+        #         'difficulty': 'Intermediate',
+        #         'duration': '20 min',
+        #         'link': 'https://example.com/sop/backup-automation',
+        #         'icon': '💾',
+        #         'tags': ['Backup', 'Automation', 'System']
+        #     },
+        #     {
+        #         'id': 'image_processing',
+        #         'title': 'Image Processing Workflow',
+        #         'description': 'Batch process images with resizing, optimization, and format conversion',
+        #         'category': 'Media Processing',
+        #         'difficulty': 'Beginner',
+        #         'duration': '10 min',
+        #         'link': 'https://example.com/sop/image-processing',
+        #         'icon': '🖼️',
+        #         'tags': ['Images', 'Media', 'Batch']
+        #     },
+        #     {
+        #         'id': 'api_integration',
+        #         'title': 'API Integration Guide',
+        #         'description': 'Connect to external APIs and process responses effectively',
+        #         'category': 'Integration',
+        #         'difficulty': 'Advanced',
+        #         'duration': '45 min',
+        #         'link': 'https://example.com/sop/api-integration',
+        #         'icon': '🔌',
+        #         'tags': ['API', 'Integration', 'REST']
+        #     },
+        #     {
+        #         'id': 'database_operations',
+        #         'title': 'Database Operations',
+        #         'description': 'Perform CRUD operations and manage database connections',
+        #         'category': 'Database',
+        #         'difficulty': 'Intermediate',
+        #         'duration': '25 min',
+        #         'link': 'https://example.com/sop/database-operations',
+        #         'icon': '🗄️',
+        #         'tags': ['Database', 'SQL', 'CRUD']
+        #     }
+        # ]
 
         # Initialize categories for filtering
         self.categories = list(set(sop['category'] for sop in self.sops_data))
@@ -230,107 +231,128 @@ class SOPsPage(BasePage):
             border_color=("gray70", "gray30")
         )
         card.grid(row=row, column=col, padx=10, pady=10, sticky="nsew")
-
-        # Make cards expand to fill space
-        self.scrollable_frame.grid_rowconfigure(row, weight=1)
+        # self.scrollable_frame.grid_rowconfigure(row, weight=1) # Keep row weight if you want all cards in a row to have same height
 
         # Card content
         content_frame = ctk.CTkFrame(card, fg_color="transparent")
-        content_frame.grid(row=0, column=0, padx=20, pady=20, sticky="nsew")
-        content_frame.grid_columnconfigure(0, weight=1)
+        content_frame.grid(row=0, column=0, padx=15, pady=15, sticky="nsew")  # Reduced padx/pady a bit
+        content_frame.grid_columnconfigure(0, weight=1)  # Allow content to fill width
 
         # Icon and title
         title_frame = ctk.CTkFrame(content_frame, fg_color="transparent")
         title_frame.grid(row=0, column=0, sticky="ew")
-        title_frame.grid_columnconfigure(1, weight=1)
+        # title_frame.grid_columnconfigure(0, weight=0) # Icon column
+        title_frame.grid_columnconfigure(1, weight=1)  # Title label column (allow to expand)
 
         icon_label = ctk.CTkLabel(
             title_frame,
-            text=sop['icon'],
+            text=sop.get('icon', '📄'),
             font=ctk.CTkFont(size=24)
         )
-        icon_label.grid(row=0, column=0, padx=(0, 10))
+        icon_label.grid(row=0, column=0, padx=(0, 10), sticky="ns")
 
         title_label = ctk.CTkLabel(
             title_frame,
-            text=sop['title'],
+            text=sop.get('title', 'No Title'),
             font=ctk.CTkFont(size=16, weight="bold"),
-            anchor="w"
+            anchor="w",
+            justify="left",  # Ensure text is left-justified when wrapped
+            wraplength=220  # *** ADDED: Adjust this based on your card width / icon size / padding ***
         )
-        title_label.grid(row=0, column=1, sticky="w")
+        title_label.grid(row=0, column=1, sticky="ew")
 
-        # Category and difficulty badges
+        # Category, difficulty, and duration badges
         badge_frame = ctk.CTkFrame(content_frame, fg_color="transparent")
-        badge_frame.grid(row=1, column=0, pady=(10, 0), sticky="w")
+        badge_frame.grid(row=1, column=0, pady=(8, 0),
+                         sticky="ew")  # Use sticky="ew" to allow internal elements to align
+        # We'll let the badges flow using grid columns within badge_frame
 
-        category_badge = ctk.CTkLabel(
-            badge_frame,
-            text=sop['category'],
-            font=ctk.CTkFont(size=11),
-            fg_color=("#e0e0e0", "#374151"),
-            corner_radius=12,
-            padx=8,
-            pady=2
-        )
-        category_badge.grid(row=0, column=0, padx=(0, 5))
+        current_badge_column = 0
+        badge_wraplength = 70  # *** ADDED: wraplength for individual badges ***
 
-        # Difficulty color mapping
-        diff_colors = {
-            'Beginner': ("#4CAF50", "#2d5a2f"),
-            'Intermediate': ("#FF9800", "#b36a00"),
-            'Advanced': ("#f44336", "#961f17")
-        }
+        if sop.get('category'):
+            category_badge = ctk.CTkLabel(
+                badge_frame,
+                text=sop['category'],
+                font=ctk.CTkFont(size=11),
+                fg_color=("#e0e0e0", "#374151"),
+                corner_radius=12,
+                padx=8,
+                pady=2,
+                wraplength=badge_wraplength,  # *** ADDED ***
+                justify="center"
+            )
+            category_badge.grid(row=0, column=current_badge_column, padx=(0, 5), pady=(0, 2), sticky="w")
+            current_badge_column += 1
 
-        difficulty_badge = ctk.CTkLabel(
-            badge_frame,
-            text=sop['difficulty'],
-            font=ctk.CTkFont(size=11),
-            fg_color=diff_colors.get(sop['difficulty'], ("#757575", "#424242")),
-            text_color="white",
-            corner_radius=12,
-            padx=8,
-            pady=2
-        )
-        difficulty_badge.grid(row=0, column=1, padx=5)
+        if sop.get('difficulty'):
+            diff_colors = {
+                'Beginner': ("#4CAF50", "#2d5a2f"),
+                'Intermediate': ("#FF9800", "#b36a00"),
+                'Advanced': ("#f44336", "#961f17")
+            }
+            difficulty_badge = ctk.CTkLabel(
+                badge_frame,
+                text=sop['difficulty'],
+                font=ctk.CTkFont(size=11),
+                fg_color=diff_colors.get(sop['difficulty'], ("#757575", "#424242")),
+                text_color="white",
+                corner_radius=12,
+                padx=8,
+                pady=2,
+                wraplength=badge_wraplength,  # *** ADDED ***
+                justify="center"
+            )
+            difficulty_badge.grid(row=0, column=current_badge_column, padx=5 if current_badge_column > 0 else (0, 5),
+                                  pady=(0, 2), sticky="w")
+            current_badge_column += 1
 
-        duration_label = ctk.CTkLabel(
-            badge_frame,
-            text=f"⏱️ {sop['duration']}",
-            font=ctk.CTkFont(size=11),
-            text_color=("gray40", "gray60")
-        )
-        duration_label.grid(row=0, column=2, padx=5)
+        if sop.get('duration'):
+            duration_label = ctk.CTkLabel(
+                badge_frame,
+                text=f"⏱️ {sop['duration']}",
+                font=ctk.CTkFont(size=11),
+                text_color=("gray40", "gray60"),
+                wraplength=badge_wraplength + 20,  # Duration might be slightly longer with icon
+                justify="center"
+            )
+            duration_label.grid(row=0, column=current_badge_column, padx=5 if current_badge_column > 0 else (0, 5),
+                                pady=(0, 2), sticky="w")
 
         # Description
         desc_label = ctk.CTkLabel(
             content_frame,
-            text=sop['description'],
+            text=sop.get('description', ''),
             font=ctk.CTkFont(size=12),
             text_color=("gray30", "gray70"),
             anchor="w",
             justify="left",
-            wraplength=250
+            wraplength=250  # This was already there, ensure it's appropriate
         )
-        desc_label.grid(row=2, column=0, pady=(10, 0), sticky="w")
+        desc_label.grid(row=2, column=0, pady=(8, 0), sticky="ew")
 
         # Tags
         if sop.get('tags'):
             tags_frame = ctk.CTkFrame(content_frame, fg_color="transparent")
-            tags_frame.grid(row=3, column=0, pady=(10, 0), sticky="w")
+            tags_frame.grid(row=3, column=0, pady=(8, 0), sticky="ew")  # Use sticky="ew"
+            # Add column configure for tags frame to allow wrapping if you have many tags
+            # For now, limiting to 3 tags should prevent overflow issues mostly
 
-            for i, tag in enumerate(sop['tags'][:3]):  # Show max 3 tags
+            for i, tag_text in enumerate(sop['tags'][:3]):
                 tag_label = ctk.CTkLabel(
                     tags_frame,
-                    text=f"#{tag}",
+                    text=f"#{tag_text}",
                     font=ctk.CTkFont(size=10),
-                    text_color=("#1f6aa5", "#4d94ff")
+                    text_color=("#1f6aa5", "#4d94ff"),
+                    wraplength=70,  # *** ADDED: Optional wraplength for individual tags ***
+                    justify="left"
                 )
-                tag_label.grid(row=0, column=i, padx=(0, 8))
+                tag_label.grid(row=0, column=i, padx=(0, 8), sticky="w")
 
         # Action buttons
         button_frame = ctk.CTkFrame(content_frame, fg_color="transparent")
         button_frame.grid(row=4, column=0, pady=(15, 0), sticky="ew")
-        button_frame.grid_columnconfigure(0, weight=1)
+        button_frame.grid_columnconfigure(0, weight=1)  # Allow button to fill width
 
         view_btn = ctk.CTkButton(
             button_frame,
@@ -342,8 +364,8 @@ class SOPsPage(BasePage):
         view_btn.grid(row=0, column=0, sticky="ew", padx=(0, 5))
 
         # Make card interactive
-        card.bind("<Enter>", lambda e: card.configure(border_color=("#1f6aa5", "#1f6aa5")))
-        card.bind("<Leave>", lambda e: card.configure(border_color=("gray70", "gray30")))
+        card.bind("<Enter>", lambda e, c=card: c.configure(border_color=("#1f6aa5", "#1f6aa5")))
+        card.bind("<Leave>", lambda e, c=card: c.configure(border_color=("gray70", "gray30")))
 
     def show_empty_state(self):
         """Show empty state when no SOPs match the filter"""
@@ -412,7 +434,8 @@ class SOPsPage(BasePage):
 
     def remove_sop(self, sop_id: str):
         """Remove an SOP from the list"""
-        self.sops_data = [sop for sop in self.sops_data if sop['id'] != sop_id]
+        # self.sops_data = [sop for sop in self.sops_data if sop['id'] != sop_id]
+        self.sops_data = SOPS_DATA  # This line is for selecting the data from hte SOP Config file. Use the line above if you want to use the values on this file.
         self.filter_sops()
 
     def on_activate(self):
