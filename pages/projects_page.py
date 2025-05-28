@@ -164,11 +164,11 @@ class ProjectsPage(BasePage):
         last_run_label.grid(row=0, column=1, sticky="e", padx=(20, 0))
         
         info_frame.grid_columnconfigure(0, weight=1)
-        
+
         # Action buttons
         button_frame = ctk.CTkFrame(card, fg_color="transparent")
         button_frame.grid(row=1, column=0, padx=15, pady=(0, 15), sticky="ew")
-        
+
         run_btn = ctk.CTkButton(
             button_frame,
             text="Run",
@@ -176,21 +176,24 @@ class ProjectsPage(BasePage):
             height=28,
             command=lambda p=project: self.run_project(p)
         )
-        run_btn.grid(row=0, column=0, padx=(0, 5))
+        run_btn.grid(row=0, column=0, padx=(0, 5))  # Run button in column 0
+
+        next_button_column = 1  # Initialize column index for the next button
 
         # Add SOP button if project has an associated SOP
         if project.get('sop_id'):
             sop_btn = ctk.CTkButton(
                 button_frame,
-                text="📖 SOP",
+                text="SOP",
                 width=80,
                 height=28,
                 fg_color=("#1f6aa5", "#1f6aa5"),
                 hover_color=("#144870", "#144870"),
                 command=lambda p=project: self.open_project_sop(p)
             )
-            sop_btn.grid(row=0, column=1, padx=5)
-        
+            sop_btn.grid(row=0, column=next_button_column, padx=5)
+            next_button_column += 1  # Increment column index for the next button
+
         edit_btn = ctk.CTkButton(
             button_frame,
             text="Edit",
@@ -199,8 +202,9 @@ class ProjectsPage(BasePage):
             fg_color=("gray70", "gray30"),
             command=lambda p=project: self.edit_project(p)
         )
-        edit_btn.grid(row=0, column=1, padx=5)
-        
+        edit_btn.grid(row=0, column=next_button_column, padx=5)
+        next_button_column += 1  # Increment column index for the next button
+
         delete_btn = ctk.CTkButton(
             button_frame,
             text="Delete",
@@ -210,7 +214,7 @@ class ProjectsPage(BasePage):
             hover_color=("gray60", "gray40"),
             command=lambda p=project: self.delete_project(p)
         )
-        delete_btn.grid(row=0, column=2, padx=(5, 0))
+        delete_btn.grid(row=0, column=next_button_column, padx=(5, 0))
         
     def show_empty_state(self):
         """Show empty state when no projects exist"""
