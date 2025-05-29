@@ -175,7 +175,38 @@ class ProcessPage(BasePage):
         script_name = self.script_type_var.get()
         script_info = self.scripts_config.get(script_name, {})
 
-        if script_info.get("parameters"):
+        # Check if script has configurable paths
+        if script_info.get("configurable_paths"):
+            # Import the path config dialog and settings manager
+            from components.path_config_dialog import PathConfigDialog
+            from config.script_settings import get_settings_manager
+
+            # Get current settings
+            settings_manager = get_settings_manager()
+            current_settings = settings_manager.load_settings(script_name)
+
+            # Open configuration dialog
+            dialog = PathConfigDialog(
+                self,
+                script_name,
+                script_info["configurable_paths"],
+                current_settings
+            )
+
+            # Wait for dialog to close
+            self.wait_window(dialog)
+
+            # Get result
+            result = dialog.get_result()
+            if result is not None:
+                # Save settings
+                if settings_manager.save_settings(script_name, result):
+                    self.console.add_output(f"Path configuration saved for {script_name}", "success")
+                else:
+                    self.console.add_output(f"Failed to save configuration for {script_name}", "error")
+
+        elif script_info.get("parameters"):
+            # Show existing parameters (legacy support)
             params_str = ", ".join(f"{k}={v}" for k, v in script_info["parameters"].items())
             self.show_message(f"Configuration for {script_name}: {params_str}", "info")
         else:
