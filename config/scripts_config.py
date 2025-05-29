@@ -54,6 +54,44 @@ AVAILABLE_SCRIPTS = {
         }
     },
 
+    "EFS Attachments Saver": {
+        "path": "scripts/efs_save_attachments.py",
+        "description": "Saves email attachments from selected Outlook emails to Element Food Solutions folders",
+        "category": "Email Processing",
+        "parameters": {},
+        "configurable_paths": {
+            "od_invoice_folder": {
+                "description": "Main Element Food Solutions folder for organized invoice storage",
+                "default_components": ["Waffle-Dry", "Element Food Solutions"],
+                "type": "directory"
+            },
+            "data_imports_folder": {
+                "description": "Data imports folder for Element Food Solutions invoices",
+                "default_components": ["Waffle-Dry", "Element Food Solutions", "Data Imports"],
+                "type": "directory"
+            }
+        }
+    },
+
+    "Honeyville Attachments Saver": {
+        "path": "scripts/honeyville_save_attachments.py",
+        "description": "Saves email attachments from selected Outlook emails to Honeyville folders",
+        "category": "Email Processing",
+        "parameters": {},
+        "configurable_paths": {
+            "shipments_folder": {
+                "description": "Honeyville shipments folder for organized invoice storage",
+                "default_components": ["Waffle-Dry", "Honeyville", "Shipments to RJW"],
+                "type": "directory"
+            },
+            "data_imports_folder": {
+                "description": "Data imports folder for Honeyville invoices",
+                "default_components": ["Waffle-Dry", "Honeyville", "Data Imports"],
+                "type": "directory"
+            }
+        }
+    },
+
     "File Organizer": {
         "path": "scripts/file_organizer.py",
         "description": "Organizes files into categories",
