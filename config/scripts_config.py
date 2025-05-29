@@ -9,6 +9,7 @@ Add new scripts here to make them available in the dropdown
 # - path: Path to the script file (None for simulation)
 # - description: Brief description of what the script does
 # - category: Type of script (for future filtering)
+# - tags: List of searchable tags including category and keywords
 # - parameters: Future use for script configuration
 # - configurable_paths: Dictionary of paths that can be configured
 
@@ -17,6 +18,7 @@ AVAILABLE_SCRIPTS = {
         "path": None,  # None triggers simulation mode
         "description": "Built-in simulation for testing",
         "category": "Testing",
+        "tags": ["testing", "simulation", "demo", "development"],
         "parameters": {}
     },
 
@@ -24,6 +26,7 @@ AVAILABLE_SCRIPTS = {
         "path": "scripts/test_data_processor.py",
         "description": "Processes data and demonstrates log levels",
         "category": "Data Processing",
+        "tags": ["data", "processing", "testing", "demo", "csv", "logs"],
         "parameters": {
             "batch_size": 100,
             "output_format": "json"
@@ -34,6 +37,7 @@ AVAILABLE_SCRIPTS = {
         "path": "scripts/schneider_save_attachments.py",
         "description": "Saves email attachments from selected Outlook emails to Schneider import bills folder",
         "category": "Email Processing",
+        "tags": ["email", "attachments", "outlook", "schneider", "automation", "import", "bills"],
         "parameters": {},
         "configurable_paths": {
             "import_bills_folder": {
@@ -58,6 +62,7 @@ AVAILABLE_SCRIPTS = {
         "path": "scripts/efs_save_attachments.py",
         "description": "Saves email attachments from selected Outlook emails to Element Food Solutions folders",
         "category": "Email Processing",
+        "tags": ["email", "attachments", "outlook", "efs", "element", "food", "solutions", "automation", "invoices", "pdf"],
         "parameters": {},
         "configurable_paths": {
             "od_invoice_folder": {
@@ -77,6 +82,7 @@ AVAILABLE_SCRIPTS = {
         "path": "scripts/honeyville_save_attachments.py",
         "description": "Saves email attachments from selected Outlook emails to Honeyville folders",
         "category": "Email Processing",
+        "tags": ["email", "attachments", "outlook", "honeyville", "automation", "invoices", "pdf", "shipments"],
         "parameters": {},
         "configurable_paths": {
             "shipments_folder": {
@@ -96,6 +102,7 @@ AVAILABLE_SCRIPTS = {
         "path": "scripts/file_organizer.py",
         "description": "Organizes files into categories",
         "category": "File Operations",
+        "tags": ["files", "organizer", "sorting", "automation", "cleanup", "categories"],
         "parameters": {
             "source_dir": "./",
             "create_backup": True
@@ -107,6 +114,7 @@ AVAILABLE_SCRIPTS = {
     #     "path": "scripts/csv_report_gen.py",
     #     "description": "Generates reports from CSV files",
     #     "category": "Reporting",
+    #     "tags": ["csv", "reports", "data", "analysis", "export"],
     #     "parameters": {
     #         "input_file": "data.csv",
     #         "output_format": "pdf"
@@ -124,6 +132,7 @@ AVAILABLE_SCRIPTS = {
     #     "path": "scripts/db_backup.py",
     #     "description": "Backs up database to specified location",
     #     "category": "System",
+    #     "tags": ["database", "backup", "system", "maintenance", "sql"],
     #     "parameters": {
     #         "db_name": "production",
     #         "backup_path": "/backups/"
@@ -133,6 +142,7 @@ AVAILABLE_SCRIPTS = {
 
 # Script categories for future filtering
 SCRIPT_CATEGORIES = [
+    "All",
     "Testing",
     "Data Processing",
     "Email Processing",
