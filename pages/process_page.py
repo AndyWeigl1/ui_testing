@@ -7,6 +7,7 @@ from components.controls import ControlPanel
 from services.script_runner import ScriptRunner
 from services.output_manager import OutputManager
 from utils.event_bus import Events
+from utils.script_history import get_history_manager  # Add this import
 import os
 
 # Import script configuration
@@ -42,6 +43,9 @@ class ProcessPage(BasePage):
 
         # Load scripts from configuration
         self.scripts_config = AVAILABLE_SCRIPTS
+
+        # Initialize history manager
+        self.history_manager = get_history_manager()
 
         super().__init__(parent, state_manager, event_bus, **kwargs)
 
@@ -143,6 +147,16 @@ class ProcessPage(BasePage):
         """Set up event subscriptions for the Process page"""
         # Subscribe to script events
         self.event_bus.subscribe(Events.SCRIPT_OUTPUT, self.handle_script_output)
+        # Subscribe to navigation events to refresh history when returning to Scripts page
+        self.event_bus.subscribe(Events.NAVIGATION_CHANGED, self.on_navigation_changed)
+
+    def on_navigation_changed(self, data):
+        """Handle navigation changes"""
+        if data and data.get('page') == 'Scripts':
+            # Refresh the Scripts page to show updated history
+            scripts_page = self.parent.winfo_toplevel().pages.get('Scripts')
+            if scripts_page and hasattr(scripts_page, 'refresh_projects'):
+                scripts_page.refresh_projects()
 
     def on_activate(self):
         """Called when the Process page becomes active"""
@@ -249,6 +263,9 @@ class ProcessPage(BasePage):
                 # Update script runner's developer mode
                 self.script_runner.set_developer_mode(developer_mode)
 
+                # Record script start in history
+                self.history_manager.start_script_run(script_name, script_path or 'simulation')
+
                 # Start the script with developer mode flag
                 self.script_runner.start(script_path, developer_mode=developer_mode)
 
@@ -287,6 +304,11 @@ class ProcessPage(BasePage):
             # Stop output monitoring
             self.output_manager.stop_monitoring()
 
+            # Record script stop in history
+            script_name = self.get_state('script_name')
+            if script_name:
+                self.history_manager.end_script_run(script_name, 'stopped', -1, 'Stopped by user')
+
             # Update state
             self.set_state('script_running', False)
             self.set_state('status', 'idle')
@@ -313,25 +335,39 @@ class ProcessPage(BasePage):
             # Determine the final status based on script exit code
             script_succeeded = self.script_runner.did_script_succeed()
             exit_code = self.script_runner.get_last_exit_code()
+            script_name = self.get_state('script_name')
 
             if script_succeeded is True:
                 # Script completed successfully
                 self.set_state('status', 'success')
                 self.publish_event(Events.SCRIPT_COMPLETED, {'status': 'success', 'exit_code': exit_code})
+
+                # Record success in history
+                if script_name:
+                    self.history_manager.end_script_run(script_name, 'success', exit_code)
+
             elif script_succeeded is False:
                 # Script failed or was stopped by user
                 if exit_code == -1:
-                    # User stopped the script
+                    # User stopped the script - already recorded in stop_script()
                     self.set_state('status', 'idle')  # Don't show error for user-initiated stops
                     self.publish_event(Events.SCRIPT_STOPPED, {'reason': 'user_request', 'exit_code': exit_code})
                 else:
                     # Script failed with an error
                     self.set_state('status', 'error')
                     self.publish_event(Events.SCRIPT_ERROR, {'status': 'error', 'exit_code': exit_code})
+
+                    # Record error in history
+                    if script_name:
+                        self.history_manager.end_script_run(script_name, 'error', exit_code, f'Exit code: {exit_code}')
             else:
                 # Fallback case (shouldn't happen, but just in case)
                 self.set_state('status', 'idle')
                 self.publish_event(Events.SCRIPT_COMPLETED, {'status': 'unknown', 'exit_code': exit_code})
+
+                # Record unknown status in history
+                if script_name:
+                    self.history_manager.end_script_run(script_name, 'unknown', exit_code)
         else:
             # Check again in 100ms
             self.after(100, self.check_script_completion)
