@@ -61,7 +61,7 @@ class ModernUI(ctk.CTk):
         """Set up state subscriptions for reactive UI updates"""
         self.state_manager.subscribe('status', self.on_status_changed)
         self.state_manager.subscribe('theme', self.on_theme_changed)
-        # Add other state subscriptions as needed
+        self.state_manager.subscribe('current_page', self.on_current_page_changed)  # Add this line
 
     def create_navbar(self):
         """Create the modern navbar"""
@@ -72,6 +72,12 @@ class ModernUI(ctk.CTk):
         """Handle navigation changes"""
         self.switch_page(page_name)
         self.event_bus.publish(Events.NAVIGATION_CHANGED, {'page': page_name})
+
+    def on_current_page_changed(self, page_name: str):
+        """Handle current_page state changes to keep navbar in sync"""
+        # Update navbar active item without triggering its command
+        if hasattr(self, 'navbar'):
+            self.navbar.set_active_item(page_name, trigger_command=False)
 
     def create_header(self):
         """Create the header with title and theme toggle"""
@@ -199,4 +205,3 @@ class ModernUI(ctk.CTk):
         # Propagate theme change to current page if it has an update_theme method
         if self.current_page_widget and hasattr(self.current_page_widget, 'update_theme'):
             self.current_page_widget.update_theme()
-
