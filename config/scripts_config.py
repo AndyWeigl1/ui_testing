@@ -9,31 +9,35 @@ Add new scripts here to make them available in the dropdown
 # - path: Path to the script file (None for simulation)
 # - description: Brief description of what the script does
 # - category: Type of script (for future filtering)
+# - tags: List of searchable tags for the script
 # - parameters: Future use for script configuration
 # - configurable_paths: Dictionary of paths that can be configured
 
 AVAILABLE_SCRIPTS = {
-    "Simulation": {
-        "path": None,  # None triggers simulation mode
-        "description": "Built-in simulation for testing",
-        "category": "Testing",
-        "parameters": {}
-    },
-
-    "Test Data Processor": {
-        "path": "scripts/test_data_processor.py",
-        "description": "Processes data and demonstrates log levels",
-        "category": "Data Processing",
-        "parameters": {
-            "batch_size": 100,
-            "output_format": "json"
-        }
-    },
+    # "Simulation": {
+    #     "path": None,  # None triggers simulation mode
+    #     "description": "Built-in simulation for testing",
+    #     "category": "Testing",
+    #     "tags": ["test", "simulation", "demo", "built-in"],
+    #     "parameters": {}
+    # },
+    #
+    # "Test Data Processor": {
+    #     "path": "scripts/test_data_processor.py",
+    #     "description": "Processes data and demonstrates log levels",
+    #     "category": "Data Processing",
+    #     "tags": ["data", "processing", "csv", "logs", "test"],
+    #     "parameters": {
+    #         "batch_size": 100,
+    #         "output_format": "json"
+    #     }
+    # },
 
     "Schneider Attachments Saver": {
         "path": "scripts/schneider_save_attachments.py",
         "description": "Saves email attachments from selected Outlook emails to Schneider import bills folder",
         "category": "Email Processing",
+        "tags": ["email", "outlook", "attachments", "schneider", "automation"],
         "parameters": {},
         "configurable_paths": {
             "import_bills_folder": {
@@ -54,21 +58,63 @@ AVAILABLE_SCRIPTS = {
         }
     },
 
-    "File Organizer": {
-        "path": "scripts/file_organizer.py",
-        "description": "Organizes files into categories",
-        "category": "File Operations",
-        "parameters": {
-            "source_dir": "./",
-            "create_backup": True
+    "EFS Attachments Saver": {
+        "path": "scripts/efs_save_attachments.py",
+        "description": "Saves email attachments from Outlook to Element Food Solutions folders",
+        "category": "Email Processing",
+        "tags": ["email", "outlook", "attachments", "efs", "element", "food", "pdf"],
+        "parameters": {},
+        "configurable_paths": {
+            "od_invoice_folder": {
+                "description": "Element Food Solutions main folder",
+                "default_components": ["Waffle-Dry", "Element Food Solutions"],
+                "type": "directory"
+            },
+            "data_imports_folder": {
+                "description": "Element Food Solutions data imports folder",
+                "default_components": ["Waffle-Dry", "Element Food Solutions", "Data Imports"],
+                "type": "directory"
+            }
         }
     },
+
+    "Honeyville Attachments Saver": {
+        "path": "scripts/honeyville_save_attachments.py",
+        "description": "Saves email attachments from Outlook to Honeyville folders",
+        "category": "Email Processing",
+        "tags": ["email", "outlook", "attachments", "honeyville", "pdf", "invoices"],
+        "parameters": {},
+        "configurable_paths": {
+            "shipments_folder": {
+                "description": "Honeyville shipments folder",
+                "default_components": ["Waffle-Dry", "Honeyville", "Shipments to RJW"],
+                "type": "directory"
+            },
+            "data_imports_folder": {
+                "description": "Honeyville data imports folder",
+                "default_components": ["Waffle-Dry", "Honeyville", "Data Imports"],
+                "type": "directory"
+            }
+        }
+    },
+
+    # "File Organizer": {
+    #     "path": "scripts/file_organizer.py",
+    #     "description": "Organizes files into categories",
+    #     "category": "File Operations",
+    #     "tags": ["files", "organization", "sorting", "cleanup", "automation"],
+    #     "parameters": {
+    #         "source_dir": "./",
+    #         "create_backup": True
+    #     }
+    # },
 
     # Add new scripts here:
     # "CSV Report Generator": {
     #     "path": "scripts/csv_report_gen.py",
     #     "description": "Generates reports from CSV files",
     #     "category": "Reporting",
+    #     "tags": ["csv", "reports", "data", "analysis", "export"],
     #     "parameters": {
     #         "input_file": "data.csv",
     #         "output_format": "pdf"
@@ -86,6 +132,7 @@ AVAILABLE_SCRIPTS = {
     #     "path": "scripts/db_backup.py",
     #     "description": "Backs up database to specified location",
     #     "category": "System",
+    #     "tags": ["database", "backup", "system", "maintenance", "sql"],
     #     "parameters": {
     #         "db_name": "production",
     #         "backup_path": "/backups/"
@@ -104,6 +151,20 @@ SCRIPT_CATEGORIES = [
     "File Operations",
     "Integration"
 ]
+
+# Tag colors for visual distinction
+TAG_COLORS = {
+    "test": "#4CAF50",      # Green
+    "email": "#2196F3",     # Blue
+    "data": "#FF9800",      # Orange
+    "automation": "#9C27B0", # Purple
+    "files": "#795548",     # Brown
+    "system": "#F44336",    # Red
+    "pdf": "#607D8B",       # Blue Grey
+    "outlook": "#0078D4",   # Outlook Blue
+    # Default color for unspecified tags
+    "default": "#757575"    # Grey
+}
 
 # Default script to select on startup
 DEFAULT_SCRIPT = "Simulation"
