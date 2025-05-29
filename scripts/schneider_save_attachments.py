@@ -11,6 +11,7 @@ import win32com.client
 import psutil
 from win32com.client import Dispatch, gencache
 from datetime import datetime
+import json
 
 
 class LogLevel:
@@ -26,6 +27,22 @@ def log(level, message):
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     print(f"{timestamp} {level} {message}")
     sys.stdout.flush()  # Force immediate output
+
+
+def load_script_settings():
+    """Load saved path configurations for this script"""
+    settings_file = os.path.join("config", "script_settings", "schneider_attachments_saver_settings.json")
+
+    if os.path.exists(settings_file):
+        try:
+            with open(settings_file, 'r') as f:
+                settings = json.load(f)
+                log(LogLevel.DEBUG, f"Loaded custom path configurations from {settings_file}")
+                return settings
+        except Exception as e:
+            log(LogLevel.WARNING, f"Failed to load settings file: {e}")
+
+    return {}
 
 
 def find_path_with_components(folder_components):
@@ -105,8 +122,20 @@ def find_components_flexible(start_path, components, depth=0, max_depth=3):
     return None
 
 
-def get_folder_path(components):
-    """Get the full path for the specified folder components."""
+def get_folder_path(components, settings_key=None):
+    """Get the full path for the specified folder components, checking settings first."""
+    # Check if we have a configured path for this key
+    if settings_key:
+        settings = load_script_settings()
+        configured_path = settings.get(settings_key)
+
+        if configured_path and os.path.exists(configured_path):
+            log(LogLevel.INFO, f"Using configured path for {settings_key}: {configured_path}")
+            return configured_path
+        elif configured_path:
+            log(LogLevel.WARNING, f"Configured path for {settings_key} does not exist: {configured_path}")
+
+    # Fall back to default path discovery
     path = find_path_with_components(components)
     if not path:
         log(LogLevel.ERROR, f"Could not find a valid path containing the components: {components}")
@@ -123,13 +152,13 @@ def get_po_workbook():
 def get_import_bills_folder_path():
     """Get path to the import bills folder."""
     folder_components = ['Vendors', 'Schneider National Inc', 'Imports', 'Bills']
-    return get_folder_path(folder_components)
+    return get_folder_path(folder_components, 'import_bills_folder')
 
 
 def get_schneider_report_folder():
     """Get path to the Schneider report folder."""
     folder_components = ['Vendors', 'Schneider National Inc', 'Imports', 'Schneider Report']
-    return get_folder_path(folder_components)
+    return get_folder_path(folder_components, 'schneider_report_folder')
 
 
 def get_upload_template():
@@ -141,7 +170,7 @@ def get_upload_template():
 def get_csv_upload_base_folder():
     """Get path to the CSV uploads folder."""
     folder_components = ['Vendors', 'Schneider National Inc', 'Imports', 'CSV Uploads']
-    return get_folder_path(folder_components)
+    return get_folder_path(folder_components, 'csv_uploads_folder')
 
 
 def is_outlook_open():
