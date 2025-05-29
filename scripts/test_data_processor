@@ -1,0 +1,99 @@
+#!/usr/bin/env python3
+"""
+Simple data processing script for testing real script execution.
+This script demonstrates different output types and processing steps.
+"""
+
+import sys
+import time
+import json
+import random
+from datetime import datetime
+
+
+class LogLevel:
+    DEBUG = "[DEBUG]"
+    INFO = "[INFO]"
+    SUCCESS = "[SUCCESS]"
+    WARNING = "[WARNING]"
+    ERROR = "[ERROR]"
+
+
+def log(level, message):
+    """Print a log message with timestamp and level"""
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    print(f"{timestamp} {level} {message}")
+    sys.stdout.flush()  # Force immediate output
+
+
+def process_data():
+    """Main data processing function"""
+    # Start
+    log(LogLevel.INFO, "Starting data processing script...")
+    log(LogLevel.DEBUG, f"Python version: {sys.version.split()[0]}")
+    log(LogLevel.DEBUG, f"Script started at: {datetime.now()}")
+
+    # Simulate loading configuration
+    log(LogLevel.INFO, "Loading configuration...")
+    time.sleep(0.5)
+    config = {
+        "batch_size": 100,
+        "output_format": "json",
+        "validate": True
+    }
+    log(LogLevel.DEBUG, f"Configuration loaded: {json.dumps(config)}")
+
+    # Simulate data loading
+    log(LogLevel.INFO, "Loading data...")
+    time.sleep(0.8)
+    record_count = 1000
+    log(LogLevel.DEBUG, f"Found {record_count} records to process")
+
+    # Process data in batches
+    log(LogLevel.INFO, "Processing data in batches...")
+    processed = 0
+    errors = 0
+
+    for batch in range(0, record_count, config["batch_size"]):
+        batch_end = min(batch + config["batch_size"], record_count)
+        log(LogLevel.INFO, f"Processing batch {batch // config['batch_size'] + 1}: records {batch + 1}-{batch_end}")
+
+        # Simulate processing with random success/failure
+        time.sleep(0.3)
+
+        # Occasionally generate warnings or errors
+        if random.random() < 0.1:  # 10% chance of warning
+            log(LogLevel.WARNING, f"Found invalid data in record {batch + random.randint(1, config['batch_size'])}")
+            errors += 1
+
+        processed += (batch_end - batch)
+        log(LogLevel.DEBUG, f"Batch complete. Total processed: {processed}/{record_count}")
+
+    # Summary
+    log(LogLevel.INFO, "Processing complete!")
+    log(LogLevel.SUCCESS, f"Successfully processed {processed - errors} records")
+    if errors > 0:
+        log(LogLevel.WARNING, f"Encountered {errors} errors during processing")
+
+    # Final stats
+    log(LogLevel.DEBUG, f"Total execution time: {time.time():.2f} seconds")
+    log(LogLevel.DEBUG, "Memory usage: 45.2 MB (simulated)")
+
+    return 0  # Success exit code
+
+
+def main():
+    """Main entry point"""
+    try:
+        exit_code = process_data()
+        sys.exit(exit_code)
+    except KeyboardInterrupt:
+        log(LogLevel.WARNING, "Script interrupted by user")
+        sys.exit(1)
+    except Exception as e:
+        log(LogLevel.ERROR, f"Unexpected error: {str(e)}")
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()
