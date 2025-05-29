@@ -306,11 +306,32 @@ class ProcessPage(BasePage):
     def check_script_completion(self):
         """Check if the script has completed"""
         if not self.script_runner.is_running and not self.script_runner.is_alive:
-            # Script completed
+            # Script completed - check if it succeeded or failed
             self.set_state('script_running', False)
-            self.set_state('status', 'success')
             self.output_manager.stop_monitoring()
-            self.publish_event(Events.SCRIPT_COMPLETED, {'status': 'success'})
+
+            # Determine the final status based on script exit code
+            script_succeeded = self.script_runner.did_script_succeed()
+            exit_code = self.script_runner.get_last_exit_code()
+
+            if script_succeeded is True:
+                # Script completed successfully
+                self.set_state('status', 'success')
+                self.publish_event(Events.SCRIPT_COMPLETED, {'status': 'success', 'exit_code': exit_code})
+            elif script_succeeded is False:
+                # Script failed or was stopped by user
+                if exit_code == -1:
+                    # User stopped the script
+                    self.set_state('status', 'idle')  # Don't show error for user-initiated stops
+                    self.publish_event(Events.SCRIPT_STOPPED, {'reason': 'user_request', 'exit_code': exit_code})
+                else:
+                    # Script failed with an error
+                    self.set_state('status', 'error')
+                    self.publish_event(Events.SCRIPT_ERROR, {'status': 'error', 'exit_code': exit_code})
+            else:
+                # Fallback case (shouldn't happen, but just in case)
+                self.set_state('status', 'idle')
+                self.publish_event(Events.SCRIPT_COMPLETED, {'status': 'unknown', 'exit_code': exit_code})
         else:
             # Check again in 100ms
             self.after(100, self.check_script_completion)
