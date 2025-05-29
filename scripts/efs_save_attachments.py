@@ -17,6 +17,7 @@ import re
 from io import BytesIO
 import shutil
 import glob
+import logging # <<< ADD THIS IMPORT
 
 
 class LogLevel:
@@ -32,6 +33,12 @@ def log(level, message):
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     print(f"{timestamp} {level} {message}")
     sys.stdout.flush()  # Force immediate output
+
+class CropBoxFilter(logging.Filter):
+    def filter(self, record):
+        # Return False to prevent the log record from being processed
+        # if it contains the specific message.
+        return "CropBox missing from /Page, defaulting to MediaBox" not in record.getMessage()
 
 
 def load_script_settings():
@@ -182,6 +189,7 @@ def extract_text_from_pdf(pdf_file_bytes):
                     text += extracted
         return text
     except Exception as e:
+        log(LogLevel.ERROR, f"Failed to extract text from PDF during processing: {str(e)}")
         raise Exception(f"Failed to extract text from PDF: {str(e)}")
 
 
@@ -365,12 +373,12 @@ def save_attachments_from_selected_emails(invoice_folder, od_invoice_folder):
                                     final_file_path = os.path.join(month_folder, new_filename)
                                     shutil.move(temp_file_path, final_file_path)
                                     saved_files.append(final_file_path)
-                                    log(LogLevel.SUCCESS, f"Saved invoice to organized folder: {final_file_path}")
+                                    log(LogLevel.DEBUG, f"Saved invoice to organized folder: {final_file_path}")
 
                                     # Save the file to the additional folder with new filename
                                     additional_file_path = os.path.join(invoice_folder, new_filename)
                                     shutil.copy(final_file_path, additional_file_path)
-                                    log(LogLevel.SUCCESS, f"Copied invoice to data imports: {additional_file_path}")
+                                    log(LogLevel.DEBUG, f"Copied invoice to data imports: {additional_file_path}")
 
                                     saved_count += 1
 
@@ -438,13 +446,14 @@ def display_summary(saved_files):
     for folder_key, invoice_numbers in summary.items():
         log(LogLevel.SUCCESS, f"Invoices saved in Element Food Solutions > {folder_key}:")
         for invoice in invoice_numbers:
-            log(LogLevel.INFO, f"  - {invoice}")
+            log(LogLevel.SUCCESS, f"  - {invoice}")
 
 
 def main():
     """Main function to execute the attachment saving process."""
     log(LogLevel.INFO, "Starting Element Food Solutions attachment saver...")
-
+    pdfminer_logger = logging.getLogger('pdfminer.pdfpage')
+    pdfminer_logger.addFilter(CropBoxFilter())
     # Get required folder paths
     log(LogLevel.INFO, "Locating required folders...")
     invoice_folder = get_invoice_folder_path()
@@ -458,23 +467,25 @@ def main():
         log(LogLevel.ERROR, "Element Food Solutions main folder could not be found")
         return 1
 
-    log(LogLevel.SUCCESS, f"Data imports folder: {invoice_folder}")
-    log(LogLevel.SUCCESS, f"Main EFS folder: {od_invoice_folder}")
+    # log(LogLevel.SUCCESS, f"Data imports folder: {invoice_folder}")
+    # log(LogLevel.SUCCESS, f"Main EFS folder: {od_invoice_folder}")
+    log(LogLevel.INFO, f"Data imports folder successfully located!")
+    log(LogLevel.INFO, f"Main EFS folder successfully located!")
 
     # Check if Outlook is running
     if not is_outlook_open():
         log(LogLevel.ERROR, "Outlook is not open. Please open Outlook and select the emails to process, then retry.")
         return 1
 
-    log(LogLevel.SUCCESS, "Outlook is running")
+    log(LogLevel.INFO, "Confirmed Outlook is running!")
 
     # Save attachments from selected emails
     log(LogLevel.DEBUG, "Starting attachment extraction from selected emails...")
     saved_count = save_attachments_from_selected_emails(invoice_folder, od_invoice_folder)
 
     if saved_count > 0:
-        log(LogLevel.SUCCESS, f"Operation completed successfully! Saved {saved_count} attachment(s)")
-        log(LogLevel.INFO, "All selected invoices saved to OneDrive. The script is now complete.")
+        log(LogLevel.INFO, f"Operation completed successfully! Saved {saved_count} attachment(s)")
+        log(LogLevel.SUCCESS, "All selected invoices saved to OneDrive. The script is now complete.")
     else:
         log(LogLevel.WARNING, "No attachments were saved. Please check that you have selected emails with attachments.")
 
