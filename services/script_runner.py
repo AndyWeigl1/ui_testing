@@ -1,8 +1,11 @@
-"""Enhanced script runner service with log level support"""
+"""Enhanced script runner service with real Python script execution"""
 
 import threading
 import time
 import queue
+import subprocess
+import sys
+import os
 from typing import Callable, Optional, List, Tuple
 from config.settings import SIMULATION_OPERATIONS, SCRIPT_SIMULATION_DELAY
 
@@ -14,6 +17,7 @@ class LogLevel:
     SUCCESS = "success"
     WARNING = "warning"
     ERROR = "error"
+    SYSTEM = "system"
 
 
 class ScriptRunner:
@@ -22,6 +26,7 @@ class ScriptRunner:
     def __init__(self):
         self.is_running = False
         self.current_thread: Optional[threading.Thread] = None
+        self.current_process: Optional[subprocess.Popen] = None
         self.output_queue = queue.Queue()
         self._stop_requested = False
         self.developer_mode = False  # Track developer mode
@@ -30,7 +35,7 @@ class ScriptRunner:
         """Start running a script
 
         Args:
-            script_path: Path to the script to run (optional for simulation)
+            script_path: Path to the script to run (None for simulation)
             args: Command line arguments for the script
             developer_mode: Whether to output debug-level messages
         """
@@ -41,17 +46,39 @@ class ScriptRunner:
         self._stop_requested = False
         self.developer_mode = developer_mode
 
-        # For now, we'll use simulation. Later this can run actual scripts
-        self.current_thread = threading.Thread(
-            target=self._run_simulation,
-            daemon=True
-        )
+        if script_path and os.path.exists(script_path):
+            # Run actual script
+            self.current_thread = threading.Thread(
+                target=self._run_script,
+                args=(script_path, args or []),
+                daemon=True
+            )
+        else:
+            # Run simulation if no valid script path
+            self.current_thread = threading.Thread(
+                target=self._run_simulation,
+                daemon=True
+            )
+
         self.current_thread.start()
 
     def stop(self):
         """Stop the running script"""
         if self.is_running:
             self._stop_requested = True
+
+            # If running a real process, terminate it
+            if self.current_process and self.current_process.poll() is None:
+                try:
+                    self.current_process.terminate()
+                    # Give it a moment to terminate gracefully
+                    time.sleep(0.5)
+                    # Force kill if still running
+                    if self.current_process.poll() is None:
+                        self.current_process.kill()
+                except Exception as e:
+                    self._add_output(LogLevel.ERROR, f"Error stopping process: {e}")
+
             self.is_running = False
 
             # Wait for thread to finish (with timeout)
@@ -95,11 +122,107 @@ class ScriptRunner:
         """Update developer mode setting"""
         self.developer_mode = enabled
 
+    def _parse_log_level(self, line: str) -> Tuple[str, str]:
+        """Parse log level from output line
+
+        Returns:
+            Tuple of (log_level, cleaned_message)
+        """
+        line = line.strip()
+
+        # Check for log level markers
+        level_markers = {
+            "[DEBUG]": LogLevel.DEBUG,
+            "[INFO]": LogLevel.INFO,
+            "[SUCCESS]": LogLevel.SUCCESS,
+            "[WARNING]": LogLevel.WARNING,
+            "[ERROR]": LogLevel.ERROR,
+        }
+
+        for marker, level in level_markers.items():
+            if marker in line:
+                # Extract the message after the timestamp and level
+                parts = line.split(marker, 1)
+                if len(parts) > 1:
+                    message = parts[1].strip()
+                    return level, message
+
+        # Default to info level if no marker found
+        return LogLevel.INFO, line
+
+    def _run_script(self, script_path: str, args: List[str]):
+        """Run an actual Python script"""
+        try:
+            # Announce script execution
+            self._add_output(LogLevel.SYSTEM, f"Executing script: {script_path}")
+
+            # Build command
+            cmd = [sys.executable, script_path] + args
+
+            # Start the process
+            self.current_process = subprocess.Popen(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                bufsize=1,  # Line buffered
+                universal_newlines=True
+            )
+
+            # Read output in real-time
+            while True:
+                if self._stop_requested:
+                    break
+
+                # Check if process is still running
+                if self.current_process.poll() is not None:
+                    break
+
+                # Read stdout (non-blocking would be better, but this works for now)
+                line = self.current_process.stdout.readline()
+                if line:
+                    level, message = self._parse_log_level(line)
+                    self._add_output(level, message)
+
+                # Small sleep to prevent CPU spinning
+                time.sleep(0.01)
+
+            # Get any remaining output
+            stdout, stderr = self.current_process.communicate(timeout=1)
+
+            # Process any remaining stdout
+            if stdout:
+                for line in stdout.strip().split('\n'):
+                    if line:
+                        level, message = self._parse_log_level(line)
+                        self._add_output(level, message)
+
+            # Process stderr as errors
+            if stderr:
+                for line in stderr.strip().split('\n'):
+                    if line:
+                        self._add_output(LogLevel.ERROR, line)
+
+            # Check exit code
+            if self.current_process.returncode == 0:
+                self._add_output(LogLevel.SYSTEM, "Script completed successfully")
+            else:
+                self._add_output(LogLevel.ERROR, f"Script exited with code {self.current_process.returncode}")
+
+        except FileNotFoundError:
+            self._add_output(LogLevel.ERROR, f"Python executable not found: {sys.executable}")
+        except subprocess.TimeoutExpired:
+            self._add_output(LogLevel.ERROR, "Script communication timeout")
+        except Exception as e:
+            self._add_output(LogLevel.ERROR, f"Error running script: {str(e)}")
+        finally:
+            self.is_running = False
+            self.current_process = None
+
     def _run_simulation(self):
         """Run the enhanced script simulation with different log levels"""
-        # Enhanced simulation with debug messages
+        # Original simulation code - kept as fallback
         operations = [
-            # (message, log_level, has_debug_details)
             ("Starting script execution...", LogLevel.INFO, True),
             ("Initializing components...", LogLevel.INFO, True),
             ("Loading configuration...", LogLevel.INFO, True),
@@ -112,43 +235,43 @@ class ScriptRunner:
 
         # Debug details for each operation
         debug_details = {
-            0: [  # Starting script
+            0: [
                 ("Python version: 3.9.7", LogLevel.DEBUG),
-                ("Script path: /scripts/data_processor.py", LogLevel.DEBUG),
+                ("Script path: /scripts/simulation.py", LogLevel.DEBUG),
                 ("Working directory: /home/user/projects", LogLevel.DEBUG),
             ],
-            1: [  # Initializing
+            1: [
                 ("Loading module: pandas v1.3.4", LogLevel.DEBUG),
                 ("Loading module: numpy v1.21.4", LogLevel.DEBUG),
                 ("Memory allocated: 128MB", LogLevel.DEBUG),
             ],
-            2: [  # Loading config
+            2: [
                 ("Config file: config.json", LogLevel.DEBUG),
                 ("Parsing JSON configuration...", LogLevel.DEBUG),
                 ("Validated 15 configuration parameters", LogLevel.DEBUG),
             ],
-            3: [  # Database connection
+            3: [
                 ("Database host: localhost:5432", LogLevel.DEBUG),
                 ("Connection pool size: 10", LogLevel.DEBUG),
                 ("SSL mode: require", LogLevel.DEBUG),
                 ("Connection established in 0.23 seconds", LogLevel.DEBUG),
             ],
-            4: [  # Fetching data
+            4: [
                 ("Query: SELECT * FROM sales_data WHERE date >= '2024-01-01'", LogLevel.DEBUG),
                 ("Fetching 10,000 records...", LogLevel.DEBUG),
                 ("Data transfer rate: 2.3 MB/s", LogLevel.DEBUG),
             ],
-            5: [  # Processing records
+            5: [
                 ("Applying data transformations...", LogLevel.DEBUG),
                 ("Validating data integrity...", LogLevel.DEBUG),
                 ("Calculating aggregations...", LogLevel.DEBUG),
             ],
-            6: [  # Generating report
+            6: [
                 ("Template: quarterly_report.html", LogLevel.DEBUG),
                 ("Generating charts...", LogLevel.DEBUG),
                 ("Compiling PDF output...", LogLevel.DEBUG),
             ],
-            7: [  # Finalizing
+            7: [
                 ("Closing database connections...", LogLevel.DEBUG),
                 ("Clearing temporary files...", LogLevel.DEBUG),
                 ("Total execution time: 4.7 seconds", LogLevel.DEBUG),
@@ -160,34 +283,27 @@ class ScriptRunner:
                 self._add_output(LogLevel.WARNING, "Script execution interrupted by user.")
                 break
 
-            # Always show the main operation message
             self._add_output(level, operation)
 
-            # Add debug details if they exist for this operation
             if has_debug and i in debug_details:
                 for debug_msg, debug_level in debug_details[i]:
                     self._add_output(debug_level, debug_msg)
-                    time.sleep(0.1)  # Small delay for debug messages
+                    time.sleep(0.1)
 
             time.sleep(SCRIPT_SIMULATION_DELAY)
 
-            # Special handling for processing records - show progress
             if i == 5:  # Processing records
                 for j in range(5):
                     if self._stop_requested:
                         break
 
-                    # High-level progress for normal users
                     self._add_output(LogLevel.INFO, f"  Processing batch {j + 1}/5...")
-
-                    # Detailed progress for developers
                     self._add_output(LogLevel.DEBUG, f"    Records {j*2000+1}-{(j+1)*2000}: Validated")
                     self._add_output(LogLevel.DEBUG, f"    Memory usage: {64 + j*12}MB")
                     self._add_output(LogLevel.DEBUG, f"    Processing rate: {1.8 + j*0.1:.1f}k records/sec")
 
                     time.sleep(0.5)
 
-                # Simulate a warning
                 if not self._stop_requested:
                     self._add_output(LogLevel.WARNING, "  Warning: 3 records had missing values and were skipped")
                     self._add_output(LogLevel.DEBUG, "    Missing values in columns: [customer_id, purchase_date, amount]")
