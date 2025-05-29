@@ -30,6 +30,8 @@ class ScriptRunner:
         self.output_queue = queue.Queue()
         self._stop_requested = False
         self.developer_mode = False  # Track developer mode
+        self.last_exit_code = None  # Track the exit code of the last script
+        self.script_succeeded = None  # Track whether the last script succeeded
 
     def start(self, script_path: Optional[str] = None, args: Optional[List[str]] = None, developer_mode: bool = False):
         """Start running a script
@@ -45,6 +47,9 @@ class ScriptRunner:
         self.is_running = True
         self._stop_requested = False
         self.developer_mode = developer_mode
+        # Reset exit code and success status
+        self.last_exit_code = None
+        self.script_succeeded = None
 
         if script_path and os.path.exists(script_path):
             # Run actual script
@@ -79,6 +84,9 @@ class ScriptRunner:
                 except Exception as e:
                     self._add_output(LogLevel.ERROR, f"Error stopping process: {e}")
 
+            # Mark as stopped by user (special case)
+            self.last_exit_code = -1  # User termination
+            self.script_succeeded = False
             self.is_running = False
 
             # Wait for thread to finish (with timeout)
@@ -121,6 +129,22 @@ class ScriptRunner:
     def set_developer_mode(self, enabled: bool):
         """Update developer mode setting"""
         self.developer_mode = enabled
+
+    def get_last_exit_code(self) -> Optional[int]:
+        """Get the exit code of the last completed script
+
+        Returns:
+            Exit code (0 = success, >0 = error, -1 = user stopped, None = still running)
+        """
+        return self.last_exit_code
+
+    def did_script_succeed(self) -> Optional[bool]:
+        """Check if the last script succeeded
+
+        Returns:
+            True if succeeded, False if failed, None if still running or no script run yet
+        """
+        return self.script_succeeded
 
     def _parse_log_level(self, line: str) -> Tuple[str, str]:
         """Parse log level from output line
@@ -203,7 +227,11 @@ class ScriptRunner:
                     if line:
                         self._add_output(LogLevel.ERROR, line)
 
-            # Check exit code
+            # Set exit code and success status
+            self.last_exit_code = self.current_process.returncode
+            self.script_succeeded = (self.current_process.returncode == 0)
+
+            # Check exit code and provide appropriate message
             if self.current_process.returncode == 0:
                 self._add_output(LogLevel.SYSTEM, "Script completed successfully")
             else:
@@ -211,10 +239,16 @@ class ScriptRunner:
 
         except FileNotFoundError:
             self._add_output(LogLevel.ERROR, f"Python executable not found: {sys.executable}")
+            self.last_exit_code = 1
+            self.script_succeeded = False
         except subprocess.TimeoutExpired:
             self._add_output(LogLevel.ERROR, "Script communication timeout")
+            self.last_exit_code = 1
+            self.script_succeeded = False
         except Exception as e:
             self._add_output(LogLevel.ERROR, f"Error running script: {str(e)}")
+            self.last_exit_code = 1
+            self.script_succeeded = False
         finally:
             self.is_running = False
             self.current_process = None
@@ -278,43 +312,55 @@ class ScriptRunner:
             ],
         }
 
-        for i, (operation, level, has_debug) in enumerate(operations):
-            if self._stop_requested:
-                self._add_output(LogLevel.WARNING, "Script execution interrupted by user.")
-                break
+        try:
+            for i, (operation, level, has_debug) in enumerate(operations):
+                if self._stop_requested:
+                    self._add_output(LogLevel.WARNING, "Script execution interrupted by user.")
+                    self.last_exit_code = -1  # User stopped
+                    self.script_succeeded = False
+                    break
 
-            self._add_output(level, operation)
+                self._add_output(level, operation)
 
-            if has_debug and i in debug_details:
-                for debug_msg, debug_level in debug_details[i]:
-                    self._add_output(debug_level, debug_msg)
-                    time.sleep(0.1)
+                if has_debug and i in debug_details:
+                    for debug_msg, debug_level in debug_details[i]:
+                        self._add_output(debug_level, debug_msg)
+                        time.sleep(0.1)
 
-            time.sleep(SCRIPT_SIMULATION_DELAY)
+                time.sleep(SCRIPT_SIMULATION_DELAY)
 
-            if i == 5:  # Processing records
-                for j in range(5):
-                    if self._stop_requested:
-                        break
+                if i == 5:  # Processing records
+                    for j in range(5):
+                        if self._stop_requested:
+                            break
 
-                    self._add_output(LogLevel.INFO, f"  Processing batch {j + 1}/5...")
-                    self._add_output(LogLevel.DEBUG, f"    Records {j*2000+1}-{(j+1)*2000}: Validated")
-                    self._add_output(LogLevel.DEBUG, f"    Memory usage: {64 + j*12}MB")
-                    self._add_output(LogLevel.DEBUG, f"    Processing rate: {1.8 + j*0.1:.1f}k records/sec")
+                        self._add_output(LogLevel.INFO, f"  Processing batch {j + 1}/5...")
+                        self._add_output(LogLevel.DEBUG, f"    Records {j*2000+1}-{(j+1)*2000}: Validated")
+                        self._add_output(LogLevel.DEBUG, f"    Memory usage: {64 + j*12}MB")
+                        self._add_output(LogLevel.DEBUG, f"    Processing rate: {1.8 + j*0.1:.1f}k records/sec")
 
-                    time.sleep(0.5)
+                        time.sleep(0.5)
 
-                if not self._stop_requested:
-                    self._add_output(LogLevel.WARNING, "  Warning: 3 records had missing values and were skipped")
-                    self._add_output(LogLevel.DEBUG, "    Missing values in columns: [customer_id, purchase_date, amount]")
+                    if not self._stop_requested:
+                        self._add_output(LogLevel.WARNING, "  Warning: 3 records had missing values and were skipped")
+                        self._add_output(LogLevel.DEBUG, "    Missing values in columns: [customer_id, purchase_date, amount]")
 
-        if not self._stop_requested:
-            self._add_output(LogLevel.SUCCESS, "Script completed successfully!")
-            self._add_output(LogLevel.INFO, "Output saved to: /output/report_2024_01_15.pdf")
-            self._add_output(LogLevel.DEBUG, "Total memory peak: 256MB")
-            self._add_output(LogLevel.DEBUG, "CPU usage average: 45%")
+            if not self._stop_requested:
+                self._add_output(LogLevel.SUCCESS, "Script completed successfully!")
+                self._add_output(LogLevel.INFO, "Output saved to: /output/report_2024_01_15.pdf")
+                self._add_output(LogLevel.DEBUG, "Total memory peak: 256MB")
+                self._add_output(LogLevel.DEBUG, "CPU usage average: 45%")
 
-        self.is_running = False
+                # Simulation always succeeds unless stopped
+                self.last_exit_code = 0
+                self.script_succeeded = True
+
+        except Exception as e:
+            self._add_output(LogLevel.ERROR, f"Simulation error: {str(e)}")
+            self.last_exit_code = 1
+            self.script_succeeded = False
+        finally:
+            self.is_running = False
 
     def _add_output(self, msg_type: str, message: str):
         """Add a message to the output queue
