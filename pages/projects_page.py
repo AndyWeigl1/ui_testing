@@ -1,24 +1,37 @@
-"""Projects page - manage and organize scripts"""
+"""Projects page - manage and organize scripts with search and filtering"""
 
 import customtkinter as ctk
 from pages.base_page import BasePage
 from typing import List, Dict, Any
-from utils.script_history import get_history_manager  # Add this import
-from utils.event_bus import Events  # Add this import
+from utils.script_history import get_history_manager
+from utils.event_bus import Events
 
 # Import script configuration to match names
 try:
-    from config.scripts_config import AVAILABLE_SCRIPTS
+    from config.scripts_config import AVAILABLE_SCRIPTS, SCRIPT_CATEGORIES
 except ImportError:
     AVAILABLE_SCRIPTS = {}
+    SCRIPT_CATEGORIES = ["All"]
 
 
 class ProjectsPage(BasePage):
-    """Projects page for managing scripts and projects"""
+    """Projects page for managing scripts and projects with search and filtering"""
 
     def __init__(self, parent, state_manager, event_bus, **kwargs):
         # Initialize history manager
         self.history_manager = get_history_manager()
+
+        # Initialize categories for filtering
+        self.categories = SCRIPT_CATEGORIES
+        self.selected_category = "All"
+
+        # Initialize search
+        self.search_var = ctk.StringVar()
+        self.search_var.trace('w', lambda *args: self.filter_projects())
+
+        # Store all projects for filtering
+        self.all_projects = []
+        self.filtered_projects = []
 
         super().__init__(parent, state_manager, event_bus, **kwargs)
 
@@ -28,13 +41,27 @@ class ProjectsPage(BasePage):
         main_container = ctk.CTkFrame(self, fg_color="transparent")
         main_container.grid(row=0, column=0, padx=20, pady=20, sticky="nsew")
         main_container.grid_columnconfigure(0, weight=1)
-        main_container.grid_rowconfigure(1, weight=1)
+        main_container.grid_rowconfigure(2, weight=1)
 
-        # Header
-        header_frame = ctk.CTkFrame(main_container, fg_color="transparent")
+        # Header with title and stats
+        self.create_header(main_container)
+
+        # Search and filter bar
+        self.create_search_filter_bar(main_container)
+
+        # Projects list container
+        self.create_projects_container(main_container)
+
+        # Load and display projects
+        self.refresh_projects()
+
+    def create_header(self, parent):
+        """Create the page header"""
+        header_frame = ctk.CTkFrame(parent, fg_color="transparent")
         header_frame.grid(row=0, column=0, pady=(0, 20), sticky="ew")
         header_frame.grid_columnconfigure(0, weight=1)
 
+        # Title
         title_label = ctk.CTkLabel(
             header_frame,
             text="Script Projects",
@@ -42,33 +69,85 @@ class ProjectsPage(BasePage):
         )
         title_label.grid(row=0, column=0, sticky="w")
 
-        # Add new project button
-        add_btn = ctk.CTkButton(
-            header_frame,
-            text="+ New Project",
-            width=120,
-            command=self.add_new_project
+        # Quick stats
+        stats_frame = ctk.CTkFrame(header_frame, fg_color="transparent")
+        stats_frame.grid(row=0, column=1, rowspan=2, sticky="e")
+
+        self.total_label = ctk.CTkLabel(
+            stats_frame,
+            text="0 Scripts Available",
+            font=ctk.CTkFont(size=12, weight="bold"),
+            text_color=("#1f6aa5", "#1f6aa5")
         )
-        add_btn.grid(row=0, column=1, sticky="e")
+        self.total_label.grid(row=0, column=0, padx=10)
 
-        # Projects list container
-        list_container = ctk.CTkFrame(main_container)
-        list_container.grid(row=1, column=0, sticky="nsew")
-        list_container.grid_columnconfigure(0, weight=1)
-        list_container.grid_rowconfigure(0, weight=1)
+        # Description
+        desc_label = ctk.CTkLabel(
+            header_frame,
+            text="Manage and execute your automation scripts",
+            font=ctk.CTkFont(size=14),
+            text_color=("gray40", "gray60")
+        )
+        desc_label.grid(row=1, column=0, sticky="w", pady=(5, 0))
 
-        # Scrollable frame for projects
-        self.scrollable_frame = ctk.CTkScrollableFrame(list_container)
+    def create_search_filter_bar(self, parent):
+        """Create search and filter controls"""
+        control_frame = ctk.CTkFrame(parent)
+        control_frame.grid(row=1, column=0, pady=(0, 20), sticky="ew")
+        control_frame.grid_columnconfigure(2, weight=1)
+
+        # Category filter
+        filter_label = ctk.CTkLabel(
+            control_frame,
+            text="Category:",
+            font=ctk.CTkFont(size=14)
+        )
+        filter_label.grid(row=0, column=0, padx=(20, 10), pady=15)
+
+        self.category_menu = ctk.CTkOptionMenu(
+            control_frame,
+            values=self.categories,
+            command=self.on_category_changed,
+            width=150
+        )
+        self.category_menu.grid(row=0, column=1, padx=(0, 20), pady=15, sticky="w")
+
+        # Search bar
+        search_frame = ctk.CTkFrame(control_frame, fg_color="transparent")
+        search_frame.grid(row=0, column=2, padx=(0, 20), pady=15, sticky="e")
+
+        search_label = ctk.CTkLabel(
+            search_frame,
+            text="🔍",
+            font=ctk.CTkFont(size=16)
+        )
+        search_label.grid(row=0, column=0, padx=(0, 5))
+
+        self.search_entry = ctk.CTkEntry(
+            search_frame,
+            placeholder_text="Search scripts by name or tags...",
+            textvariable=self.search_var,
+            width=250
+        )
+        self.search_entry.grid(row=0, column=1)
+
+    def create_projects_container(self, parent):
+        """Create the scrollable container for project cards"""
+        # Container frame
+        container_frame = ctk.CTkFrame(parent)
+        container_frame.grid(row=2, column=0, sticky="nsew")
+        container_frame.grid_columnconfigure(0, weight=1)
+        container_frame.grid_rowconfigure(0, weight=1)
+
+        # Scrollable frame
+        self.scrollable_frame = ctk.CTkScrollableFrame(container_frame)
         self.scrollable_frame.grid(row=0, column=0, sticky="nsew", padx=2, pady=2)
         self.scrollable_frame.grid_columnconfigure(0, weight=1)
-
-        # Load and display projects
-        self.refresh_projects()
 
     def refresh_projects(self):
         """Refresh the projects list with current history data"""
         # Build projects list from available scripts configuration
-        self.projects = []
+        self.all_projects = []
 
         for script_name, script_info in AVAILABLE_SCRIPTS.items():
             # Get history info for this script
@@ -79,35 +158,72 @@ class ProjectsPage(BasePage):
                 'name': script_name,
                 'description': script_info.get('description', 'No description available'),
                 'path': script_info.get('path', ''),
+                'category': script_info.get('category', 'General'),
+                'tags': script_info.get('tags', []),
                 'last_run': last_run_time or 'Never',
                 'status': last_status or 'idle',
                 'sop_id': script_info.get('sop_id')  # Keep SOP functionality
             }
 
-            self.projects.append(project)
+            self.all_projects.append(project)
 
-        # Display the projects
-        self.display_projects()
+        # Update stats
+        self.total_label.configure(text=f"{len(self.all_projects)} Scripts Available")
 
-    def display_projects(self):
+        # Apply current filters
+        self.filter_projects()
+
+    def filter_projects(self):
+        """Filter projects based on search and category"""
+        search_term = self.search_var.get().lower()
+        filtered_projects = []
+
+        for project in self.all_projects:
+            # Category filter
+            if self.selected_category != "All" and project['category'] != self.selected_category:
+                continue
+
+            # Search filter
+            if search_term:
+                searchable_text = f"{project['name']} {project['description']} {project['category']} {' '.join(project['tags'])}".lower()
+                if search_term not in searchable_text:
+                    continue
+
+            filtered_projects.append(project)
+
+        self.filtered_projects = filtered_projects
+        self.display_projects(filtered_projects)
+
+    def on_category_changed(self, category):
+        """Handle category filter change"""
+        self.selected_category = category
+        self.filter_projects()
+
+    def display_projects(self, projects_list):
         """Display the list of projects"""
         # Clear existing widgets
         for widget in self.scrollable_frame.winfo_children():
             widget.destroy()
 
-        # Create project cards
-        for i, project in enumerate(self.projects):
-            self.create_project_card(project, i)
-
-        # Info panel (shown when no projects)
-        if not self.projects:
+        if not projects_list:
+            # Show empty state
             self.show_empty_state()
+            return
+
+        # Create project cards
+        for i, project in enumerate(projects_list):
+            self.create_project_card(project, i)
 
     def create_project_card(self, project: Dict[str, Any], index: int):
         """Create a card for a project"""
         # Card frame
-        card = ctk.CTkFrame(self.scrollable_frame)
-        card.grid(row=index, column=0, padx=10, pady=5, sticky="ew")
+        card = ctk.CTkFrame(
+            self.scrollable_frame,
+            corner_radius=10,
+            border_width=1,
+            border_color=("gray70", "gray30")
+        )
+        card.grid(row=index, column=0, padx=10, pady=8, sticky="ew")
         card.grid_columnconfigure(0, weight=1)
 
         # Content frame
@@ -115,11 +231,17 @@ class ProjectsPage(BasePage):
         content_frame.grid(row=0, column=0, padx=15, pady=15, sticky="ew")
         content_frame.grid_columnconfigure(0, weight=1)
 
+        # Header with name and status
+        header_frame = ctk.CTkFrame(content_frame, fg_color="transparent")
+        header_frame.grid(row=0, column=0, sticky="ew", pady=(0, 8))
+        header_frame.grid_columnconfigure(0, weight=1)
+
         # Project name
         name_label = ctk.CTkLabel(
-            content_frame,
+            header_frame,
             text=project['name'],
-            font=ctk.CTkFont(size=16, weight="bold")
+            font=ctk.CTkFont(size=16, weight="bold"),
+            anchor="w"
         )
         name_label.grid(row=0, column=0, sticky="w")
 
@@ -142,7 +264,7 @@ class ProjectsPage(BasePage):
 
         status = project.get('status', 'idle')
         status_label = ctk.CTkLabel(
-            content_frame,
+            header_frame,
             text=f"● {status_text.get(status, status.title())}",
             text_color=status_colors.get(status, "#757575"),
             font=ctk.CTkFont(size=12)
@@ -155,13 +277,41 @@ class ProjectsPage(BasePage):
             text=project['description'],
             font=ctk.CTkFont(size=12),
             text_color=("gray40", "gray60"),
-            anchor="w"
+            anchor="w",
+            wraplength=600
         )
-        desc_label.grid(row=1, column=0, columnspan=2, sticky="w", pady=(5, 0))
+        desc_label.grid(row=1, column=0, sticky="w", pady=(0, 8))
 
-        # Path and last run info
+        # Tags and category section
+        tags_frame = ctk.CTkFrame(content_frame, fg_color="transparent")
+        tags_frame.grid(row=2, column=0, sticky="ew", pady=(0, 8))
+
+        # Category badge
+        category_badge = ctk.CTkLabel(
+            tags_frame,
+            text=project['category'],
+            font=ctk.CTkFont(size=11),
+            fg_color=("#e0e0e0", "#374151"),
+            corner_radius=12,
+            padx=8,
+            pady=2
+        )
+        category_badge.grid(row=0, column=0, padx=(0, 5), sticky="w")
+
+        # Tags
+        for i, tag in enumerate(project['tags'][:5]):  # Show up to 5 tags
+            tag_label = ctk.CTkLabel(
+                tags_frame,
+                text=f"#{tag}",
+                font=ctk.CTkFont(size=10),
+                text_color=("#1f6aa5", "#4d94ff")
+            )
+            tag_label.grid(row=0, column=i + 1, padx=3, sticky="w")
+
+        # Info section
         info_frame = ctk.CTkFrame(content_frame, fg_color="transparent")
-        info_frame.grid(row=2, column=0, columnspan=2, sticky="ew", pady=(10, 0))
+        info_frame.grid(row=3, column=0, sticky="ew", pady=(0, 8))
+        info_frame.grid_columnconfigure(0, weight=1)
 
         # Only show path if it exists
         if project.get('path'):
@@ -180,8 +330,6 @@ class ProjectsPage(BasePage):
             text_color=("gray30", "gray70")
         )
         last_run_label.grid(row=0, column=1, sticky="e", padx=(20, 0))
-
-        info_frame.grid_columnconfigure(0, weight=1)
 
         # Action buttons
         button_frame = ctk.CTkFrame(card, fg_color="transparent")
@@ -236,30 +384,38 @@ class ProjectsPage(BasePage):
         )
         clear_btn.grid(row=0, column=next_button_column, padx=(5, 0))
 
+        # Make card interactive
+        card.bind("<Enter>", lambda e, c=card: c.configure(border_color=("#1f6aa5", "#1f6aa5")))
+        card.bind("<Leave>", lambda e, c=card: c.configure(border_color=("gray70", "gray30")))
+
     def show_empty_state(self):
-        """Show empty state when no projects exist"""
+        """Show empty state when no projects match the filter"""
         empty_frame = ctk.CTkFrame(self.scrollable_frame, fg_color="transparent")
         empty_frame.grid(row=0, column=0, padx=50, pady=50)
 
         empty_label = ctk.CTkLabel(
             empty_frame,
-            text="No scripts configured",
+            text="No scripts found",
             font=ctk.CTkFont(size=18, weight="bold"),
             text_color=("gray40", "gray60")
         )
         empty_label.grid(row=0, column=0, pady=(0, 10))
 
-        help_label = ctk.CTkLabel(
-            empty_frame,
-            text="Scripts can be configured in config/scripts_config.py",
-            font=ctk.CTkFont(size=14),
-            text_color=("gray30", "gray70")
-        )
+        if self.search_var.get() or self.selected_category != "All":
+            help_label = ctk.CTkLabel(
+                empty_frame,
+                text="Try adjusting your search or filter criteria",
+                font=ctk.CTkFont(size=14),
+                text_color=("gray30", "gray70")
+            )
+        else:
+            help_label = ctk.CTkLabel(
+                empty_frame,
+                text="Scripts can be configured in config/scripts_config.py",
+                font=ctk.CTkFont(size=14),
+                text_color=("gray30", "gray70")
+            )
         help_label.grid(row=1, column=0)
-
-    def add_new_project(self):
-        """Add a new project"""
-        self.show_message("To add a new script, edit config/scripts_config.py", "info")
 
     def run_project(self, project: Dict[str, Any]):
         """Run a project"""
