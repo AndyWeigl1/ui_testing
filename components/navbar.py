@@ -96,8 +96,13 @@ class ModernNavbar(ctk.CTkFrame):
             btn.grid(row=0, column=i, padx=2)
             self.nav_buttons[item] = btn
 
-    def set_active_item(self, item):
-        """Set the active navigation item"""
+    def set_active_item(self, item, trigger_command=True):
+        """Set the active navigation item
+
+        Args:
+            item: The navigation item to set as active
+            trigger_command: Whether to call the command callback (default True)
+        """
         self.active_item = item
 
         # Update all buttons
@@ -117,8 +122,8 @@ class ModernNavbar(ctk.CTkFrame):
                     font=ctk.CTkFont(size=14, weight="normal")
                 )
 
-        # Call the command if provided
-        if self.command:
+        # Call the command if provided and trigger_command is True
+        if self.command and trigger_command:
             self.command(item)
 
     def update_theme(self):
