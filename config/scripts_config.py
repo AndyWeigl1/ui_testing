@@ -10,6 +10,7 @@ Add new scripts here to make them available in the dropdown
 # - description: Brief description of what the script does
 # - category: Type of script (for future filtering)
 # - parameters: Future use for script configuration
+# - configurable_paths: Dictionary of paths that can be configured
 
 AVAILABLE_SCRIPTS = {
     "Simulation": {
@@ -33,7 +34,24 @@ AVAILABLE_SCRIPTS = {
         "path": "scripts/schneider_save_attachments.py",
         "description": "Saves email attachments from selected Outlook emails to Schneider import bills folder",
         "category": "Email Processing",
-        "parameters": {}
+        "parameters": {},
+        "configurable_paths": {
+            "import_bills_folder": {
+                "description": "Folder where email attachments will be saved",
+                "default_components": ["Vendors", "Schneider National Inc", "Imports", "Bills"],
+                "type": "directory"
+            },
+            "schneider_report_folder": {
+                "description": "Folder containing Schneider reports",
+                "default_components": ["Vendors", "Schneider National Inc", "Imports", "Schneider Report"],
+                "type": "directory"
+            },
+            "csv_uploads_folder": {
+                "description": "Base folder for CSV uploads",
+                "default_components": ["Vendors", "Schneider National Inc", "Imports", "CSV Uploads"],
+                "type": "directory"
+            }
+        }
     },
 
     "File Organizer": {
@@ -54,6 +72,13 @@ AVAILABLE_SCRIPTS = {
     #     "parameters": {
     #         "input_file": "data.csv",
     #         "output_format": "pdf"
+    #     },
+    #     "configurable_paths": {
+    #         "reports_output_folder": {
+    #             "description": "Folder where generated reports will be saved",
+    #             "default_components": ["Reports", "Generated"],
+    #             "type": "directory"
+    #         }
     #     }
     # },
 
