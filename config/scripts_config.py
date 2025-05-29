@@ -29,6 +29,13 @@ AVAILABLE_SCRIPTS = {
         }
     },
 
+    "Schneider Attachments Saver": {
+        "path": "scripts/schneider_save_attachments.py",
+        "description": "Saves email attachments from selected Outlook emails to Schneider import bills folder",
+        "category": "Email Processing",
+        "parameters": {}
+    },
+
     "File Organizer": {
         "path": "scripts/file_organizer.py",
         "description": "Organizes files into categories",
@@ -65,6 +72,7 @@ AVAILABLE_SCRIPTS = {
 SCRIPT_CATEGORIES = [
     "Testing",
     "Data Processing",
+    "Email Processing",
     "Reporting",
     "System",
     "Web Automation",
