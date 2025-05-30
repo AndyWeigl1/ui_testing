@@ -524,7 +524,7 @@ if __name__ == "__main__":
         exit_code, state = main()
 
         # If paused, save state
-        if exit_code == -99 and state:
+        if exit_code == 99 and state:
             state_file = os.path.join(os.path.dirname(__file__), ".divvy_state.pkl")
             state.save(state_file)
 
