@@ -13,7 +13,7 @@ class SettingsPage(BasePage):
     def setup_ui(self):
         """Set up the Settings page UI"""
         # Main container with scrolling
-        self.scrollable_frame = ctk.CTkScrollableFrame(self)
+        self.scrollable_frame = self.create_fast_scrollable_frame(self)
         self.scrollable_frame.grid(row=0, column=0, padx=20, pady=20, sticky="nsew")
         self.scrollable_frame.grid_columnconfigure(0, weight=1)
 
