@@ -52,7 +52,7 @@ class OutputConsole(ctk.CTkFrame):
     def create_header(self):
         """Create the header with font controls, developer mode toggle, and copy button"""
         header_frame = ctk.CTkFrame(self, fg_color="transparent")
-        header_frame.grid(row=0, column=0, padx=10, pady=(10, 5), sticky="ew")
+        header_frame.grid(row=0, column=0, padx=10, pady=(5, 5), sticky="ew")
         header_frame.grid_columnconfigure(0, weight=1)
 
         # Title
@@ -103,7 +103,7 @@ class OutputConsole(ctk.CTkFrame):
             height=28,
             command=self.copy_output
         )
-        self.copy_btn.grid(row=0, column=3, padx=5)
+        self.copy_btn.grid(row=0, column=3, padx=5, pady=5)
 
     def create_output_display(self):
         """Create the text widget for output display"""
