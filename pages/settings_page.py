@@ -140,7 +140,7 @@ class SettingsPage(BasePage):
         row += 1
 
         # Accent color (placeholder)
-        accent_label = ctk.CTkLabel(parent, text="Accent Color:")
+        accent_label = ctk.CTkLabel(parent, text="Accent Color:  ")
         accent_label.grid(row=row, column=0, sticky="w", pady=5)
 
         self.accent_var = ctk.StringVar(value="blue")
@@ -184,7 +184,7 @@ class SettingsPage(BasePage):
         row += 1
 
         # Font family (placeholder)
-        font_family_label = ctk.CTkLabel(parent, text="Font Family:")
+        font_family_label = ctk.CTkLabel(parent, text="Font Family:  ")
         font_family_label.grid(row=row, column=0, sticky="w", pady=5)
 
         self.font_family_var = ctk.StringVar(value="Consolas")
