@@ -1,4 +1,4 @@
-"""Modern navigation bar component"""
+"""Modern navigation bar component with integrated status indicator"""
 
 import customtkinter as ctk
 from config.themes import COLORS
@@ -8,10 +8,11 @@ from config.settings import (
     NAV_BUTTON_WIDTH, NAV_BUTTON_HEIGHT, BUTTON_CORNER_RADIUS,
     LOGO_SIZE, LOGO_CORNER_RADIUS
 )
+from components.status_bar import StatusIndicator
 
 
 class ModernNavbar(ctk.CTkFrame):
-    """A modern navbar component similar to the React design"""
+    """A modern navbar component with integrated status indicator"""
 
     def __init__(self, master, command=None):
         super().__init__(master, fg_color=("gray85", "#212121"), corner_radius=NAVBAR_CORNER_RADIUS)
@@ -26,18 +27,14 @@ class ModernNavbar(ctk.CTkFrame):
         # Configure the frame
         self.grid_columnconfigure(1, weight=1)
 
-        # Create logo
+        # Create components
         self.create_logo()
-
-        # Create navigation items
         self.create_nav_items()
 
     def create_logo(self):
         """Create the logo section"""
         self.logo_frame = ctk.CTkFrame(
             self,
-            # Removed fg_color to make it transparent for the image
-            # fg_color=self.colors["logo_bg"],
             fg_color="transparent", # Make logo frame transparent
             width=LOGO_SIZE,
             height=LOGO_SIZE,
@@ -74,9 +71,13 @@ class ModernNavbar(ctk.CTkFrame):
             self.logo_frame.configure(fg_color=self.colors["logo_bg"])
 
     def create_nav_items(self):
-        """Create the navigation items"""
+        """Create the navigation items with integrated status indicator"""
         nav_container = ctk.CTkFrame(self, fg_color="transparent")
         nav_container.grid(row=0, column=1, sticky="e", padx=(10, 20), pady=10)
+
+        # Create status indicator within nav_container
+        self.status_indicator = StatusIndicator(nav_container)
+        self.status_indicator.grid(row=0, column=0, padx=(0, 30), pady=0)
 
         self.nav_buttons = {}
 
@@ -93,7 +94,7 @@ class ModernNavbar(ctk.CTkFrame):
                 font=ctk.CTkFont(size=14, weight="bold" if item == self.active_item else "normal"),
                 command=lambda x=item: self.set_active_item(x)
             )
-            btn.grid(row=0, column=i, padx=2)
+            btn.grid(row=0, column=i + 1, padx=2)  # +1 to account for status indicator
             self.nav_buttons[item] = btn
 
     def set_active_item(self, item, trigger_command=True):
