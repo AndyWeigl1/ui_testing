@@ -197,7 +197,7 @@ class SOPsPage(BasePage):
         container_frame.grid_rowconfigure(0, weight=1)
 
         # Scrollable frame
-        self.scrollable_frame = ctk.CTkScrollableFrame(container_frame)
+        self.scrollable_frame = self.create_fast_scrollable_frame(container_frame)
         self.scrollable_frame.grid(row=0, column=0, sticky="nsew", padx=2, pady=2)
 
         # Configure grid for responsive layout
