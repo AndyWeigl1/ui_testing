@@ -15,11 +15,8 @@ try:
     from config.scripts_config import AVAILABLE_SCRIPTS, DEFAULT_SCRIPT
 except ImportError:
     # Fallback if config doesn't exist yet
-    AVAILABLE_SCRIPTS = {
-        "Simulation": {"path": None, "description": "Built-in simulation"},
-        "Test Data Processor": {"path": "scripts/test_data_processor.py", "description": "Test script"}
-    }
-    DEFAULT_SCRIPT = "Simulation"
+    AVAILABLE_SCRIPTS = {}
+    DEFAULT_SCRIPT = ""
 
 
 class ProcessPage(BasePage):
@@ -46,6 +43,9 @@ class ProcessPage(BasePage):
 
         # Initialize history manager
         self.history_manager = get_history_manager()
+
+        # Track if placeholder has been removed from dropdown
+        self.placeholder_removed = False
 
         super().__init__(parent, state_manager, event_bus, **kwargs)
 
@@ -85,11 +85,18 @@ class ProcessPage(BasePage):
         )
         script_label.grid(row=0, column=0, padx=(0, 10), sticky="w")
 
-        # Script dropdown (wider now)
-        self.script_type_var = ctk.StringVar(value=DEFAULT_SCRIPT)
+        # Script dropdown (wider now) - Start with placeholder, remove it once a real script is selected
+        if self.scripts_config:
+            script_options = ["Select a script..."] + list(self.scripts_config.keys())
+            initial_value = DEFAULT_SCRIPT if DEFAULT_SCRIPT and DEFAULT_SCRIPT in self.scripts_config else "Select a script..."
+        else:
+            script_options = ["No scripts available"]
+            initial_value = "No scripts available"
+
+        self.script_type_var = ctk.StringVar(value=initial_value)
         self.script_dropdown = ctk.CTkOptionMenu(
             script_frame,
-            values=list(self.scripts_config.keys()),
+            values=script_options,
             variable=self.script_type_var,
             command=self.on_script_changed,
             width=250  # Wider dropdown
@@ -219,6 +226,17 @@ class ProcessPage(BasePage):
 
     def on_script_changed(self, selection: str):
         """Handle script selection change"""
+        # Don't show description for placeholder text
+        if selection == "Select a script..." or selection == "No scripts available":
+            return
+
+        # If this is the first time selecting a real script, remove the placeholder
+        if not self.placeholder_removed and selection in self.scripts_config:
+            self.placeholder_removed = True
+            # Update dropdown values to only include real scripts
+            script_options = list(self.scripts_config.keys())
+            self.script_dropdown.configure(values=script_options)
+
         # Show script description
         script_info = self.scripts_config.get(selection, {})
         description = script_info.get("description", "No description available")
@@ -228,6 +246,12 @@ class ProcessPage(BasePage):
         """Handle configure script button click"""
         # Get current script info
         script_name = self.script_type_var.get()
+
+        # Check if a valid script is selected
+        if script_name == "Select a script..." or script_name == "No scripts available" or script_name not in self.scripts_config:
+            self.show_message("Please select a script first", "warning")
+            return
+
         script_info = self.scripts_config.get(script_name, {})
 
         # Check if script has configurable paths
@@ -267,36 +291,40 @@ class ProcessPage(BasePage):
         else:
             self.show_message(f"No configuration options for {script_name}", "info")
 
-        # In the future, this could open a dialog to:
-        # - Set script parameters
-        # - Configure script paths
-        # - Set environment variables
-        # - Manage script dependencies
-
     def run_script(self):
         """Start running the script"""
         if not self.get_state('script_running', False):
             try:
+                # Get selected script
+                script_name = self.script_type_var.get()
+
+                # Check if a valid script is selected
+                if script_name == "Select a script..." or script_name == "No scripts available":
+                    self.console.add_output("Please select a script to run", "warning")
+                    return
+
+                if script_name not in self.scripts_config:
+                    self.console.add_output(f"Script '{script_name}' not found in configuration", "error")
+                    return
+
                 # Clear the output queue before starting
                 self.script_runner.clear_output_queue()
 
-                # Get selected script
-                script_name = self.script_type_var.get()
                 script_info = self.scripts_config.get(script_name, {})
                 script_path = script_info.get("path")
 
-                # Check if it's simulation or real script
-                if script_path is None:
-                    # Run simulation
-                    self.console.add_output("Running simulation...", "system")
-                else:
-                    # Check if script exists
-                    if not os.path.exists(script_path):
-                        self.console.add_output(f"Script not found: {script_path}", "error")
-                        self.console.add_output("Please ensure the script file exists in the scripts/ directory", "warning")
-                        return
+                # Check if script path is valid
+                if not script_path:
+                    self.console.add_output(f"No script path configured for '{script_name}'", "error")
+                    return
 
-                    self.console.add_output(f"Running script: {script_name}", "system")
+                # Check if script exists
+                if not os.path.exists(script_path):
+                    self.console.add_output(f"Script not found: {script_path}", "error")
+                    self.console.add_output("Please ensure the script file exists in the scripts/ directory", "warning")
+                    return
+
+                self.console.add_output(f"Running script: {script_name}", "system")
 
                 # Get developer mode setting
                 developer_mode = self.get_state('developer_mode', False)
@@ -305,7 +333,7 @@ class ProcessPage(BasePage):
                 self.script_runner.set_developer_mode(developer_mode)
 
                 # Record script start in history
-                self.history_manager.start_script_run(script_name, script_path or 'simulation')
+                self.history_manager.start_script_run(script_name, script_path)
 
                 # Start the script with developer mode flag
                 self.script_runner.start(script_path, developer_mode=developer_mode)
@@ -313,7 +341,7 @@ class ProcessPage(BasePage):
                 # Update state
                 self.set_state('script_running', True)
                 self.set_state('status', 'running')
-                self.set_state('script_path', script_path or 'simulation')
+                self.set_state('script_path', script_path)
                 self.set_state('script_name', script_name)
 
                 # Start output monitoring
@@ -322,7 +350,7 @@ class ProcessPage(BasePage):
                 # Publish event
                 self.publish_event(Events.SCRIPT_STARTED, {
                     'page': 'Process',
-                    'script': script_path or 'simulation',
+                    'script': script_path,
                     'script_name': script_name,
                     'developer_mode': developer_mode
                 })
