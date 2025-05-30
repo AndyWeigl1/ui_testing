@@ -2,7 +2,7 @@
 
 ## Features ✨
 
-* **System Notifications:** Implement system notifications for script completion (success/failure).
+* ~~**System Notifications:** Implement system notifications for script completion (success/failure).~~ ✅ **COMPLETED**
 * ~~**Audible Alerts:** Add a feature to play sounds when scripts finish successfully or encounter an error.~~ ✅ **COMPLETED**
 * ~~**Script Stats Window:**~~ ✅ **COMPLETED**
     * ~~Enable functionality for the "Stats" button on the script page.~~
@@ -43,17 +43,3 @@ Based on the completed history feature, consider these additions:
     * Re-evaluate the container holding "Script Control Panel" text, the dark/light mode toggle, and the status indicator.
     * **Proposal 1:** Move the status indicator to the navbar (left of the first button, right of the logo). Remove the rest of the container as the dark mode toggle is redundant (already in settings).
     * **Consider:** Explore alternative solutions for a cleaner and more modern UI.
-
----
-## Recently Completed ✅
-
-* **Detailed Script History/Logs** - Comprehensive execution history viewer with:
-    - Modal dialog showing detailed run history
-    - Filtering by status (Success, Error, Stopped, etc.)
-    - Search functionality for error messages
-    - Export to CSV capability
-    - Individual run detail view with full error information
-    - Summary statistics (total runs, success rate, average duration)
-    - History management (clear history option)
-    - Real-time data refresh
-    - Enhanced `ScriptHistoryManager` with additional utility methods
