@@ -1,9 +1,10 @@
-"""Settings page - application configuration (UPDATED WITH SOUND SETTINGS)"""
+"""Settings page - application configuration (UPDATED WITH NOTIFICATION SETTINGS)"""
 
 import customtkinter as ctk
 from pages.base_page import BasePage
 from config.settings import MIN_FONT_SIZE, MAX_FONT_SIZE, FONT_SIZE_STEPS
 from services.sound_manager import get_sound_manager
+from services.notification_manager import get_notification_manager
 
 
 class SettingsPage(BasePage):
@@ -40,7 +41,7 @@ class SettingsPage(BasePage):
         )
         self.create_console_settings(console_section.content_frame)
 
-        # Sound section - NEW
+        # Sound section
         sound_section = self.create_settings_section(
             "Sound Notifications",
             self.scrollable_frame,
@@ -48,11 +49,19 @@ class SettingsPage(BasePage):
         )
         self.create_sound_settings(sound_section.content_frame)
 
+        # System Notifications section - NEW
+        notification_section = self.create_settings_section(
+            "System Notifications",
+            self.scrollable_frame,
+            row=4
+        )
+        self.create_notification_settings(notification_section.content_frame)
+
         # Script Execution section
         execution_section = self.create_settings_section(
             "Script Execution",
             self.scrollable_frame,
-            row=4
+            row=5
         )
         self.create_execution_settings(execution_section.content_frame)
 
@@ -60,13 +69,13 @@ class SettingsPage(BasePage):
         advanced_section = self.create_settings_section(
             "Advanced",
             self.scrollable_frame,
-            row=5
+            row=6
         )
         self.create_advanced_settings(advanced_section.content_frame)
 
         # Save/Reset buttons
         button_frame = ctk.CTkFrame(self.scrollable_frame, fg_color="transparent")
-        button_frame.grid(row=6, column=0, pady=(30, 0), sticky="ew")
+        button_frame.grid(row=7, column=0, pady=(30, 0), sticky="ew")
         button_frame.grid_columnconfigure(0, weight=1)
 
         save_btn = ctk.CTkButton(
@@ -296,6 +305,114 @@ class SettingsPage(BasePage):
             sound_check.grid(row=row, column=0, columnspan=2, sticky="w", padx=(20, 0), pady=2)
             row += 1
 
+    def create_notification_settings(self, parent):
+        """Create system notification settings - NEW SECTION"""
+        row = 0
+
+        # Get notification manager
+        self.notification_manager = get_notification_manager()
+
+        # Enable system notifications
+        self.notifications_enabled_var = ctk.BooleanVar(value=self.get_state('notifications_enabled', True))
+        notifications_check = ctk.CTkCheckBox(
+            parent,
+            text="Enable system notifications",
+            variable=self.notifications_enabled_var,
+            command=self.on_notifications_enabled_changed
+        )
+        notifications_check.grid(row=row, column=0, columnspan=2, sticky="w", pady=5)
+        row += 1
+
+        # Duration control
+        duration_label = ctk.CTkLabel(parent, text="Duration:")
+        duration_label.grid(row=row, column=0, sticky="w", pady=5)
+
+        duration_frame = ctk.CTkFrame(parent, fg_color="transparent")
+        duration_frame.grid(row=row, column=1, sticky="ew", pady=5)
+
+        self.duration_var = ctk.IntVar(value=self.get_state('notification_duration', 5))
+        self.duration_label = ctk.CTkLabel(
+            duration_frame,
+            text=f"{self.duration_var.get()}s"
+        )
+        self.duration_label.grid(row=0, column=0, padx=(0, 10))
+
+        duration_slider = ctk.CTkSlider(
+            duration_frame,
+            from_=1,
+            to=15,
+            number_of_steps=14,
+            variable=self.duration_var,
+            command=self.on_duration_changed
+        )
+        duration_slider.grid(row=0, column=1, sticky="ew")
+        duration_frame.grid_columnconfigure(1, weight=1)
+        row += 1
+
+        # Test notification buttons
+        test_notif_label = ctk.CTkLabel(parent, text="Test Notifications:")
+        test_notif_label.grid(row=row, column=0, sticky="w", pady=5)
+
+        test_notif_frame = ctk.CTkFrame(parent, fg_color="transparent")
+        test_notif_frame.grid(row=row, column=1, sticky="ew", pady=5)
+
+        # Get available notification types
+        available_notifications = self.notification_manager.get_available_types()
+
+        # Create test buttons for each notification type
+        col = 0
+        for notif_type, description in available_notifications.items():
+            if notif_type in ['success', 'error', 'info']:  # Only show main notification types
+                test_btn = ctk.CTkButton(
+                    test_notif_frame,
+                    text=f"🔔 {notif_type.title()}",
+                    width=80,
+                    height=28,
+                    command=lambda nt=notif_type: self.test_notification(nt),
+                    fg_color=("gray70", "gray30")
+                )
+                test_btn.grid(row=0, column=col, padx=(0, 5))
+                col += 1
+
+        row += 1
+
+        # System notification types
+        notif_types_label = ctk.CTkLabel(parent, text="Show notifications for:")
+        notif_types_label.grid(row=row, column=0, sticky="w", pady=(15, 5))
+        row += 1
+
+        # Individual notification type toggles
+        self.notification_type_vars = {}
+
+        notification_types = [
+            ('script_success', 'Script completes successfully'),
+            ('script_error', 'Script fails or encounters an error'),
+            ('script_start', 'Script execution begins'),
+            ('script_warning', 'Script warnings or user stops')
+        ]
+
+        for notif_key, description in notification_types:
+            self.notification_type_vars[notif_key] = ctk.BooleanVar(
+                value=self.get_state(f'notification_{notif_key}', True)
+            )
+
+            notif_check = ctk.CTkCheckBox(
+                parent,
+                text=description,
+                variable=self.notification_type_vars[notif_key]
+            )
+            notif_check.grid(row=row, column=0, columnspan=2, sticky="w", padx=(20, 0), pady=2)
+            row += 1
+
+        # Platform info
+        platform_info_label = ctk.CTkLabel(
+            parent,
+            text=f"Using notification backend: {self.notification_manager.notification_backend}",
+            font=ctk.CTkFont(size=11),
+            text_color=("gray30", "gray70")
+        )
+        platform_info_label.grid(row=row, column=0, columnspan=2, sticky="w", pady=(10, 0))
+
     def create_execution_settings(self, parent):
         """Create script execution settings"""
         row = 0
@@ -433,6 +550,36 @@ class SettingsPage(BasePage):
         self.sound_manager.test_sound(sound_type)
         self.show_message(f"Playing {sound_type} sound...", "info")
 
+    # NEW NOTIFICATION METHODS
+    def on_notifications_enabled_changed(self):
+        """Handle system notifications enabled toggle"""
+        enabled = self.notifications_enabled_var.get()
+        self.set_state('notifications_enabled', enabled)
+        self.notification_manager.set_enabled(enabled)
+
+        if enabled:
+            self.show_message("System notifications enabled", "success")
+            # Show a test notification
+            self.notification_manager.show_notification(
+                "Notifications Enabled",
+                "System notifications are now active!",
+                "info"
+            )
+        else:
+            self.show_message("System notifications disabled", "info")
+
+    def on_duration_changed(self, duration: float):
+        """Handle notification duration change"""
+        duration = int(duration)
+        self.duration_label.configure(text=f"{duration}s")
+        self.set_state('notification_duration', duration)
+        self.notification_manager.set_duration(duration)
+
+    def test_notification(self, notification_type: str):
+        """Test a specific notification"""
+        self.notification_manager.test_notification(notification_type)
+        self.show_message(f"Showing {notification_type} notification...", "info")
+
     def save_settings(self):
         """Save current settings"""
         # Gather all settings
@@ -446,11 +593,18 @@ class SettingsPage(BasePage):
             # Sound settings
             'sounds_enabled': self.sounds_enabled_var.get(),
             'sound_volume': self.volume_var.get(),
+            # Notification settings - NEW
+            'notifications_enabled': self.notifications_enabled_var.get(),
+            'notification_duration': self.duration_var.get(),
         }
 
         # Add individual sound type settings
         for sound_key, var in self.sound_type_vars.items():
             settings[sound_key] = var.get()
+
+        # Add individual notification type settings - NEW
+        for notif_key, var in self.notification_type_vars.items():
+            settings[notif_key] = var.get()
 
         # Update state
         self.state_manager.update(settings)
@@ -458,6 +612,10 @@ class SettingsPage(BasePage):
         # Apply sound settings to sound manager
         self.sound_manager.set_enabled(settings['sounds_enabled'])
         self.sound_manager.set_volume(settings['sound_volume'])
+
+        # Apply notification settings to notification manager - NEW
+        self.notification_manager.set_enabled(settings['notifications_enabled'])
+        self.notification_manager.set_duration(settings['notification_duration'])
 
         self.show_message("Settings saved successfully!", "success")
         self.publish_event('settings.saved', {'settings': settings})
@@ -476,12 +634,21 @@ class SettingsPage(BasePage):
         self.sounds_enabled_var.set(True)
         self.volume_var.set(0.7)
 
+        # Reset notification settings - NEW
+        self.notifications_enabled_var.set(True)
+        self.duration_var.set(5)
+
         for var in self.sound_type_vars.values():
+            var.set(True)
+
+        # Reset notification type settings - NEW
+        for var in self.notification_type_vars.values():
             var.set(True)
 
         # Update UI
         self.font_size_label.configure(text="12px")
         self.volume_label.configure(text="70%")
+        self.duration_label.configure(text="5s")  # NEW
 
         # Save the reset settings
         self.save_settings()
@@ -510,6 +677,15 @@ class SettingsPage(BasePage):
         self.volume_var.set(self.get_state('sound_volume', 0.7))
         self.volume_label.configure(text=f"{int(self.volume_var.get() * 100)}%")
 
+        # Update notification settings - NEW
+        self.notifications_enabled_var.set(self.get_state('notifications_enabled', True))
+        self.duration_var.set(self.get_state('notification_duration', 5))
+        self.duration_label.configure(text=f"{self.duration_var.get()}s")
+
         # Update sound type settings
         for sound_key, var in self.sound_type_vars.items():
             var.set(self.get_state(sound_key, True))
+
+        # Update notification type settings - NEW
+        for notif_key, var in self.notification_type_vars.items():
+            var.set(self.get_state(notif_key, True))
