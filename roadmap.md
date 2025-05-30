@@ -3,7 +3,7 @@
 ## Features ✨
 
 * **System Notifications:** Implement system notifications for script completion (success/failure).
-* **Audible Alerts:** Add a feature to play sounds when scripts finish successfully or encounter an error.
+* ~~**Audible Alerts:** Add a feature to play sounds when scripts finish successfully or encounter an error.~~ ✅ **COMPLETED**
 * ~~**Script Stats Window:**~~ ✅ **COMPLETED**
     * ~~Enable functionality for the "Stats" button on the script page.~~
     * ~~Clicking "Stats" should open a new window displaying the run history (time and status) of the script.~~
@@ -19,6 +19,7 @@
     * ~~Implement a comprehensive logging view accessible from the GUI, potentially with filtering and search capabilities for past script runs.~~
     * **Implementation Complete:** Full-featured history dialog with advanced filtering, search, and export capabilities.
 * **Undo/Redo for Console Clearing:** Add an undo/redo functionality for the console clearing action.
+* **Add ability to favorite scripts for easy run access:** Let the user favorite scripts that they frequently use which gives them quick access to run those.
 
 ### New Enhancement Ideas 💡
 Based on the completed history feature, consider these additions:
