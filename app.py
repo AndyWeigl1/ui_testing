@@ -7,6 +7,7 @@ from components.status_bar import StatusIndicator
 from pages import AboutPage, ProcessPage, ProjectsPage, SOPsPage, SettingsPage
 from services.script_runner import ScriptRunner
 from services.sound_integration import initialize_sound_integration
+from services.notification_integration import initialize_notification_integration  # NEW
 from utils.event_bus import get_event_bus, Events
 from utils.state_manager import get_state_manager
 from config.settings import *
@@ -40,13 +41,21 @@ class ModernUI(ctk.CTk):
         # Initialize services
         self.script_runner = ScriptRunner()
 
-        # Initialize sound integration - NEW
+        # Initialize sound integration
         try:
             initialize_sound_integration()
             print("Sound integration initialized successfully")
         except Exception as e:
             print(f"Warning: Sound integration failed to initialize: {e}")
             print("Continuing without sound notifications...")
+
+        # Initialize notification integration - NEW
+        try:
+            initialize_notification_integration()
+            print("System notification integration initialized successfully")
+        except Exception as e:
+            print(f"Warning: System notification integration failed to initialize: {e}")
+            print("Continuing without system notifications...")
 
         # Configure grid
         self.grid_columnconfigure(0, weight=1)
