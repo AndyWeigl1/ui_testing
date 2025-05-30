@@ -27,6 +27,7 @@ class NotificationManager:
         self.logger = logging.getLogger(__name__)
         self.notifications_enabled = True
         self.notification_duration = 5  # seconds
+        self.silent_notifications = True  # NEW: Disable system notification sounds
 
         # App info
         self.app_name = "AutoBear Script Runner"
@@ -36,6 +37,7 @@ class NotificationManager:
         self.notification_backend = self._detect_notification_backend()
 
         self.logger.info(f"Notification manager initialized with backend: {self.notification_backend}")
+        self.logger.info(f"Silent notifications: {self.silent_notifications}")
 
     def _detect_notification_backend(self) -> str:
         """Detect the best notification backend for the current platform"""
@@ -69,7 +71,7 @@ class NotificationManager:
         """Get the path to the application icon"""
         # Try to find the icon in the assets folder
         possible_paths = [
-            "assets/icons/kodiak.png",
+            # "assets/icons/kodiak.png",
             "assets/icons/kodiak.ico",
             "assets/icons/app.png",
             "assets/icons/icon.png",
@@ -90,6 +92,11 @@ class NotificationManager:
     def set_duration(self, duration: int):
         """Set the notification duration in seconds"""
         self.notification_duration = max(1, min(30, duration))  # Clamp between 1-30 seconds
+
+    def set_silent(self, silent: bool):
+        """Enable or disable silent notifications (no system sounds)"""
+        self.silent_notifications = silent
+        self.logger.info(f"Silent notifications {'enabled' if silent else 'disabled'}")
 
     def get_available_types(self) -> Dict[str, str]:
         """Get available notification types and their descriptions"""
@@ -142,6 +149,8 @@ class NotificationManager:
     def _show_plyer_notification(self, title: str, message: str, icon_path: Optional[str]):
         """Show notification using plyer library"""
         try:
+            # Note: plyer doesn't have a direct way to disable sound
+            # The system will handle sound based on OS settings
             plyer_notification.notify(
                 title=title,
                 message=message,
@@ -158,6 +167,9 @@ class NotificationManager:
         try:
             import win10toast
             toaster = win10toast.ToastNotifier()
+
+            # win10toast doesn't have a direct silent option, but we can try to minimize sound
+            # by using threaded=True which might reduce OS sound integration
             toaster.show_toast(
                 title,
                 message,
@@ -172,7 +184,12 @@ class NotificationManager:
     def _show_osascript_notification(self, title: str, message: str):
         """Show notification using macOS osascript"""
         try:
-            script = f'display notification "{message}" with title "{title}" sound name "Default"'
+            # MODIFIED: Remove sound when silent_notifications is True
+            if self.silent_notifications:
+                script = f'display notification "{message}" with title "{title}"'
+            else:
+                script = f'display notification "{message}" with title "{title}" sound name "Default"'
+
             subprocess.run(['osascript', '-e', script], check=True)
         except Exception as e:
             self.logger.error(f"osascript notification error: {e}")
@@ -199,6 +216,10 @@ class NotificationManager:
             # Add timeout
             cmd.extend(['--expire-time', str(self.notification_duration * 1000)])
 
+            # MODIFIED: Add hint to suppress sound when silent_notifications is True
+            if self.silent_notifications:
+                cmd.extend(['--hint', 'string:sound-name:'])  # Empty sound name disables sound
+
             # Add title and message
             cmd.extend([title, message])
 
@@ -216,7 +237,7 @@ class NotificationManager:
                     import ctypes
                     from ctypes import wintypes
 
-                    # Simple message box as fallback
+                    # Simple message box as fallback (naturally silent unless user configured otherwise)
                     ctypes.windll.user32.MessageBoxW(
                         0,
                         f"{message}",
@@ -227,10 +248,13 @@ class NotificationManager:
                     self.logger.warning(f"Fallback notification: {title} - {message}")
 
             elif sys.platform.startswith('darwin'):
-                # macOS fallback - try simple say command or print
-                try:
-                    subprocess.run(['say', f"{title}. {message}"], check=True)
-                except Exception:
+                # macOS fallback - only use say command if silent notifications is disabled
+                if not self.silent_notifications:
+                    try:
+                        subprocess.run(['say', f"{title}. {message}"], check=True)
+                    except Exception:
+                        self.logger.warning(f"Fallback notification: {title} - {message}")
+                else:
                     self.logger.warning(f"Fallback notification: {title} - {message}")
 
             else:
