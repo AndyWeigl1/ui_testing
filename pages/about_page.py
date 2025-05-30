@@ -11,7 +11,7 @@ class AboutPage(BasePage):
     def setup_ui(self):
         """Set up the About page UI"""
         # Create main container with scrolling
-        main_container = ctk.CTkScrollableFrame(self, fg_color="transparent")
+        main_container = self.create_fast_scrollable_frame(self, fg_color="transparent")
         main_container.grid(row=0, column=0, padx=40, pady=40, sticky="nsew")
         main_container.grid_columnconfigure(0, weight=1)
 
