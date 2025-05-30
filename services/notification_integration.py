@@ -46,13 +46,16 @@ class NotificationIntegration:
             # Get notification preferences
             notifications_enabled = self.state_manager.get('notifications_enabled', True)
             notification_duration = self.state_manager.get('notification_duration', 5)
+            silent_notifications = self.state_manager.get('silent_notifications', True)  # NEW
 
             # Apply to notification manager
             self.notification_manager.set_enabled(notifications_enabled)
             self.notification_manager.set_duration(notification_duration)
+            self.notification_manager.set_silent(silent_notifications)  # NEW
 
             self.logger.info(
-                f"Notification settings loaded: enabled={notifications_enabled}, duration={notification_duration}s")
+                f"Notification settings loaded: enabled={notifications_enabled}, "
+                f"duration={notification_duration}s, silent={silent_notifications}")
 
         except Exception as e:
             self.logger.error(f"Error loading notification settings: {e}")
@@ -186,6 +189,10 @@ class NotificationIntegration:
             if 'notification_duration' in settings:
                 self.notification_manager.set_duration(settings['notification_duration'])
 
+            # NEW: Handle silent notifications setting
+            if 'silent_notifications' in settings:
+                self.notification_manager.set_silent(settings['silent_notifications'])
+
             self.logger.debug("Updated notification settings from settings change")
 
         except Exception as e:
@@ -201,6 +208,8 @@ class NotificationIntegration:
                 self.notification_manager.set_enabled(value)
             elif key == 'notification_duration':
                 self.notification_manager.set_duration(value)
+            elif key == 'silent_notifications':  # NEW
+                self.notification_manager.set_silent(value)
 
         except Exception as e:
             self.logger.error(f"Error handling state change for notifications: {e}")
