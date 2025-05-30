@@ -115,12 +115,49 @@ class ProcessPage(BasePage):
             self,
             on_run=self.run_script,
             on_stop=self.stop_script,
-            on_clear=self.clear_output
+            on_clear=self.clear_output,
+            on_continue=self.continue_script  # New callback
         )
         self.control_panel.grid(row=2, column=0, padx=20, pady=(10, 20), sticky="ew")
 
         # Set up output handling
         self.output_manager.set_output_callback(self.console.add_output)
+
+    def continue_script(self):
+        """Continue a paused script"""
+        try:
+            # Check if script is actually paused
+            if not self.script_runner.is_script_paused():
+                self.console.add_output("No script is currently paused", "warning")
+                return
+
+            self.console.add_output("Continuing script execution...", "system")
+
+            # Resume the script
+            self.script_runner.resume()
+
+            # Update UI state
+            self.set_state('script_running', True)
+            self.set_state('status', 'running')
+            self.control_panel.set_running_state(True)
+            self.control_panel.set_paused_state(False)
+
+            # Start output monitoring
+            self.output_manager.start_monitoring()
+
+            # Publish event
+            self.publish_event('script.resumed', {
+                'page': 'Process',
+                'script': self.get_state('script_path')
+            })
+
+            # Schedule completion check
+            self.check_script_completion()
+
+        except Exception as e:
+            self.console.add_output(f"Error resuming script: {e}", "error")
+            self.set_state('script_running', False)
+            self.set_state('status', 'error')
 
     def setup_state_subscriptions(self):
         """Set up state subscriptions for the Process page"""
@@ -162,12 +199,16 @@ class ProcessPage(BasePage):
         """Called when the Process page becomes active"""
         super().on_activate()
 
-        # Start monitoring output if script is running
-        if self.get_state('script_running', False):
+        # Check if there's a paused script
+        if self.script_runner.is_script_paused():
+            self.control_panel.set_paused_state(True)
+            self.console.add_output("Script is paused. Click 'Continue' to resume.", "info")
+        elif self.get_state('script_running', False):
             self.output_manager.start_monitoring()
         else:
             # Make sure UI is in correct state
             self.control_panel.set_running_state(False)
+            self.control_panel.set_paused_state(False)
 
     def on_deactivate(self):
         """Called when the Process page becomes inactive"""
@@ -326,11 +367,37 @@ class ProcessPage(BasePage):
         self.publish_event(Events.OUTPUT_CLEARED, {'page': 'Process'})
 
     def check_script_completion(self):
-        """Check if the script has completed"""
+        """Check if the script has completed (modified to handle pause state)"""
         if not self.script_runner.is_running and not self.script_runner.is_alive:
-            # Script completed - check if it succeeded or failed
+            # Check if script is paused
+            if self.script_runner.is_script_paused():
+                # Script is paused, not completed
+                self.set_state('script_running', False)
+                self.set_state('status', 'paused')
+                self.output_manager.stop_monitoring()
+
+                # Update UI to show Continue button
+                self.control_panel.set_running_state(False)
+                self.control_panel.set_paused_state(True)
+
+                # Enable script selection but keep it on current script
+                self.script_dropdown.configure(state="normal")
+                self.configure_btn.configure(state="disabled")
+
+                # Publish event
+                self.publish_event('script.paused', {
+                    'script': self.get_state('script_name'),
+                    'reason': 'user_review'
+                })
+
+                return  # Don't continue checking
+
+            # Script completed (not paused)
             self.set_state('script_running', False)
             self.output_manager.stop_monitoring()
+
+            # Reset pause state in UI
+            self.control_panel.set_paused_state(False)
 
             # Determine the final status based on script exit code
             script_succeeded = self.script_runner.did_script_succeed()
@@ -376,15 +443,21 @@ class ProcessPage(BasePage):
         """Handle script running state changes"""
         self.control_panel.set_running_state(is_running)
 
-        # Disable/enable script selection and configure button
-        if is_running:
-            self.script_dropdown.configure(state="disabled")
+        # Check if we should show pause state
+        if not is_running and self.script_runner.is_script_paused():
+            self.control_panel.set_paused_state(True)
+            self.script_dropdown.configure(state="disabled")  # Keep disabled while paused
             self.configure_btn.configure(state="disabled")
-            self.output_manager.start_monitoring()
         else:
-            self.script_dropdown.configure(state="normal")
-            self.configure_btn.configure(state="normal")
-            self.output_manager.stop_monitoring()
+            # Normal state handling
+            if is_running:
+                self.script_dropdown.configure(state="disabled")
+                self.configure_btn.configure(state="disabled")
+                self.output_manager.start_monitoring()
+            else:
+                self.script_dropdown.configure(state="normal")
+                self.configure_btn.configure(state="normal")
+                self.output_manager.stop_monitoring()
 
     def handle_script_output(self, data):
         """Handle script output events"""
