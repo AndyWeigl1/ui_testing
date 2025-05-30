@@ -27,12 +27,33 @@ class ModernUI(ctk.CTk):
         self.geometry(f"{WINDOW_SIZE[0]}x{WINDOW_SIZE[1]}")
         self.minsize(*MIN_SIZE)
 
-        # Initialize state manager
+        # Initialize state manager and load saved settings
         self.state_manager = get_state_manager()
-        self.state_manager.set('current_page', DEFAULT_PAGE)
-        self.state_manager.set('theme', DEFAULT_APPEARANCE)
-        self.state_manager.set('font_size', DEFAULT_FONT_SIZE)
-        self.state_manager.set('status', 'idle') # Ensure initial status is idle
+        self.state_manager.load_from_file()  # Load settings from file
+
+        # Set defaults for any missing values
+        defaults = {
+            'current_page': DEFAULT_PAGE,
+            'theme': DEFAULT_APPEARANCE,
+            'font_size': DEFAULT_FONT_SIZE,
+            'status': 'idle',
+            'notifications_enabled': True,
+            'notification_duration': 5,
+            'notification_script_start': True,
+            'notification_script_success': True,
+            'notification_script_error': True,
+            'notification_script_warning': True,
+            'sounds_enabled': True,
+            'sound_volume': 0.7,
+            'sound_script_start': True,
+            'sound_script_success': True,
+            'sound_script_error': True,
+            'developer_mode': False
+        }
+
+        for key, default_value in defaults.items():
+            if self.state_manager.get(key) is None:
+                self.state_manager.set(key, default_value)
 
         # Initialize event bus
         self.event_bus = get_event_bus()
@@ -49,7 +70,7 @@ class ModernUI(ctk.CTk):
             print(f"Warning: Sound integration failed to initialize: {e}")
             print("Continuing without sound notifications...")
 
-        # Initialize notification integration - NEW
+        # Initialize notification integration
         try:
             initialize_notification_integration()
             print("System notification integration initialized successfully")
@@ -59,14 +80,14 @@ class ModernUI(ctk.CTk):
 
         # Configure grid
         self.grid_columnconfigure(0, weight=1)
-        self.grid_rowconfigure(2, weight=1) # Main content area row
+        self.grid_rowconfigure(2, weight=1)
 
         # Create navbar
         self.create_navbar()
 
         # Create UI elements
         self.create_header()
-        self.create_page_container() # Create page container before pages
+        self.create_page_container()
         self.create_pages()
 
         # Show initial page
@@ -74,6 +95,9 @@ class ModernUI(ctk.CTk):
 
         # Timer for status reset
         self._status_reset_timer = None
+
+        # Set up proper window closing behavior
+        self.protocol("WM_DELETE_WINDOW", self.on_closing)
 
     def setup_state_subscriptions(self):
         """Set up state subscriptions for reactive UI updates"""
@@ -223,3 +247,19 @@ class ModernUI(ctk.CTk):
         # Propagate theme change to current page if it has an update_theme method
         if self.current_page_widget and hasattr(self.current_page_widget, 'update_theme'):
             self.current_page_widget.update_theme()
+
+    def on_closing(self):
+        """Handle application closing"""
+        # Save current settings before closing
+        self.state_manager.save_to_file()
+
+        # Clean up services
+        try:
+            from services.sound_integration import cleanup_sound_integration
+            from services.notification_integration import cleanup_notification_integration
+            cleanup_sound_integration()
+            cleanup_notification_integration()
+        except Exception as e:
+            print(f"Error during cleanup: {e}")
+
+        self.destroy()
