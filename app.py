@@ -78,15 +78,14 @@ class ModernUI(ctk.CTk):
             print(f"Warning: System notification integration failed to initialize: {e}")
             print("Continuing without system notifications...")
 
-        # Configure grid
+        # Configure grid - Updated row configuration since header is removed
         self.grid_columnconfigure(0, weight=1)
-        self.grid_rowconfigure(2, weight=1)
+        self.grid_rowconfigure(1, weight=1)  # Page container is now at row 1
 
         # Create navbar
         self.create_navbar()
 
-        # Create UI elements
-        self.create_header()
+        # Create page container (now at row 1 instead of row 2)
         self.create_page_container()
         self.create_pages()
 
@@ -103,7 +102,7 @@ class ModernUI(ctk.CTk):
         """Set up state subscriptions for reactive UI updates"""
         self.state_manager.subscribe('status', self.on_status_changed)
         self.state_manager.subscribe('theme', self.on_theme_changed)
-        self.state_manager.subscribe('current_page', self.on_current_page_changed)  # Add this line
+        self.state_manager.subscribe('current_page', self.on_current_page_changed)
 
     def create_navbar(self):
         """Create the modern navbar"""
@@ -121,43 +120,10 @@ class ModernUI(ctk.CTk):
         if hasattr(self, 'navbar'):
             self.navbar.set_active_item(page_name, trigger_command=False)
 
-    def create_header(self):
-        """Create the header with title and theme toggle"""
-        header_frame = ctk.CTkFrame(self, fg_color="transparent")
-        header_frame.grid(row=1, column=0, padx=20, pady=(10, 10), sticky="ew")
-        header_frame.grid_columnconfigure(0, weight=1)
-
-        title_label = ctk.CTkLabel(
-            header_frame,
-            text="Script Control Panel",
-            font=ctk.CTkFont(size=24, weight="bold")
-        )
-        title_label.grid(row=0, column=0, sticky="w")
-
-        self.theme_switch = ctk.CTkSwitch(
-            header_frame,
-            text="Dark Mode",
-            command=self.toggle_theme,
-            button_color="#1f6aa5",
-            progress_color="#144870"
-        )
-        self.theme_switch.grid(row=0, column=1, padx=10)
-        if self.state_manager.get('theme') == "dark":
-            self.theme_switch.select()
-        else:
-            self.theme_switch.deselect()
-
-
-        self.status_indicator = StatusIndicator(header_frame)
-        self.status_indicator.grid(row=0, column=2, padx=10)
-        # Initialize status indicator based on current state
-        self.status_indicator.set_status(self.state_manager.get('status'))
-
-
     def create_page_container(self):
         """Create the container for pages"""
         self.page_container = ctk.CTkFrame(self, fg_color="transparent")
-        self.page_container.grid(row=2, column=0, padx=0, pady=0, sticky="nsew")
+        self.page_container.grid(row=1, column=0, padx=0, pady=0, sticky="nsew")  # Now at row 1
         self.page_container.grid_columnconfigure(0, weight=1)
         self.page_container.grid_rowconfigure(0, weight=1)
 
@@ -210,16 +176,11 @@ class ModernUI(ctk.CTk):
             if DEFAULT_PAGE in self.pages:
                 self.switch_page(DEFAULT_PAGE)
 
-
-    def toggle_theme(self):
-        """Toggle between light and dark themes"""
-        theme = "dark" if self.theme_switch.get() else "light"
-        self.state_manager.set('theme', theme)
-        self.event_bus.publish(Events.THEME_CHANGED, {'theme': theme})
-
     def on_status_changed(self, status: str):
-        """Handle status state changes"""
-        self.status_indicator.set_status(status)
+        """Handle status state changes - Updated to work with navbar status indicator"""
+        # Update the status indicator in the navbar if it exists
+        if hasattr(self.navbar, 'status_indicator'):
+            self.navbar.status_indicator.set_status(status)
 
         # If status is success or error, start a timer to reset to idle
         if status in ["success", "error"]:
@@ -233,12 +194,10 @@ class ModernUI(ctk.CTk):
                 self.after_cancel(self._status_reset_timer)
                 self._status_reset_timer = None
 
-
     def revert_status_to_idle(self):
         """Set the status back to idle"""
         self.state_manager.set('status', 'idle')
         self._status_reset_timer = None
-
 
     def on_theme_changed(self, theme: str):
         """Handle theme state changes"""
