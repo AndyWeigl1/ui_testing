@@ -39,6 +39,7 @@ class ModernUI(ctk.CTk):
             'status': 'idle',
             'notifications_enabled': True,
             'notification_duration': 5,
+            'silent_notifications': True,  # NEW: Default to silent system notifications
             'notification_script_start': True,
             'notification_script_success': True,
             'notification_script_error': True,
