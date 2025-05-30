@@ -32,14 +32,20 @@ class ScriptRunner:
         self.developer_mode = False  # Track developer mode
         self.last_exit_code = None  # Track the exit code of the last script
         self.script_succeeded = None  # Track whether the last script succeeded
+        self.is_paused = False
+        self.pause_state = None
+        self.paused_script_path = None
+        self.paused_script_args = None
 
-    def start(self, script_path: Optional[str] = None, args: Optional[List[str]] = None, developer_mode: bool = False):
-        """Start running a script
+    def start(self, script_path: Optional[str] = None, args: Optional[List[str]] = None, developer_mode: bool = False,
+              resume: bool = False):
+        """Start running a script with optional resume support
 
         Args:
             script_path: Path to the script to run (None for simulation)
             args: Command line arguments for the script
             developer_mode: Whether to output debug-level messages
+            resume: Whether this is resuming a paused script
         """
         if self.is_running:
             raise RuntimeError("Script is already running")
@@ -47,15 +53,23 @@ class ScriptRunner:
         self.is_running = True
         self._stop_requested = False
         self.developer_mode = developer_mode
-        # Reset exit code and success status
-        self.last_exit_code = None
-        self.script_succeeded = None
+        self.is_paused = False
+
+        # If not resuming, reset state
+        if not resume:
+            self.last_exit_code = None
+            self.script_succeeded = None
+            self.pause_state = None
+
+        # Store script info for potential resume
+        self.paused_script_path = script_path
+        self.paused_script_args = args or []
 
         if script_path and os.path.exists(script_path):
             # Run actual script
             self.current_thread = threading.Thread(
                 target=self._run_script,
-                args=(script_path, args or []),
+                args=(script_path, args or [], resume),
                 daemon=True
             )
         else:
@@ -92,6 +106,19 @@ class ScriptRunner:
             # Wait for thread to finish (with timeout)
             if self.current_thread and self.current_thread.is_alive():
                 self.current_thread.join(timeout=2.0)
+
+    def resume(self):
+        """Resume a paused script"""
+        if not self.is_paused or not self.paused_script_path:
+            raise RuntimeError("No script is paused")
+
+        # Start with resume flag
+        self.start(
+            script_path=self.paused_script_path,
+            args=self.paused_script_args,
+            developer_mode=self.developer_mode,
+            resume=True
+        )
 
     def get_output(self) -> Optional[Tuple[str, str]]:
         """Get the next output message from the queue
@@ -174,14 +201,21 @@ class ScriptRunner:
         # Default to info level if no marker found
         return LogLevel.INFO, line
 
-    def _run_script(self, script_path: str, args: List[str]):
-        """Run an actual Python script"""
+    def _run_script(self, script_path: str, args: List[str], resume: bool = False):
+        """Run an actual Python script with pause/resume support"""
         try:
             # Announce script execution
-            self._add_output(LogLevel.SYSTEM, f"Executing script: {script_path}")
+            if resume:
+                self._add_output(LogLevel.SYSTEM, f"Resuming script: {script_path}")
+            else:
+                self._add_output(LogLevel.SYSTEM, f"Executing script: {script_path}")
 
             # Build command
             cmd = [sys.executable, script_path] + args
+
+            # Add resume flag if resuming
+            if resume:
+                cmd.append("--resume")
 
             # Start the process
             self.current_process = subprocess.Popen(
@@ -189,7 +223,7 @@ class ScriptRunner:
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
-                bufsize=1,  # Line buffered
+                bufsize=1,
                 universal_newlines=True
             )
 
@@ -202,26 +236,25 @@ class ScriptRunner:
                 if self.current_process.poll() is not None:
                     break
 
-                # Read stdout (non-blocking would be better, but this works for now)
+                # Read stdout
                 line = self.current_process.stdout.readline()
                 if line:
                     level, message = self._parse_log_level(line)
                     self._add_output(level, message)
 
-                # Small sleep to prevent CPU spinning
                 time.sleep(0.01)
 
             # Get any remaining output
             stdout, stderr = self.current_process.communicate(timeout=1)
 
-            # Process any remaining stdout
+            # Process remaining stdout
             if stdout:
                 for line in stdout.strip().split('\n'):
                     if line:
                         level, message = self._parse_log_level(line)
                         self._add_output(level, message)
 
-            # Process stderr as errors
+            # Process stderr
             if stderr:
                 for line in stderr.strip().split('\n'):
                     if line:
@@ -229,30 +262,34 @@ class ScriptRunner:
 
             # Set exit code and success status
             self.last_exit_code = self.current_process.returncode
-            self.script_succeeded = (self.current_process.returncode == 0)
 
-            # Check exit code and provide appropriate message
-            if self.current_process.returncode == 0:
-                self._add_output(LogLevel.SYSTEM, "Script completed successfully")
+            # Check for special pause exit code
+            if self.current_process.returncode == -99:
+                self.is_paused = True
+                self.script_succeeded = None  # Not finished yet
+                self._add_output(LogLevel.SYSTEM, "Script paused for user review")
+
+                # Try to load pause state if it exists
+                state_file = os.path.join(os.path.dirname(script_path), ".divvy_state.pkl")
+                if os.path.exists(state_file):
+                    self.pause_state = state_file
             else:
-                self._add_output(LogLevel.ERROR, f"Script exited with code {self.current_process.returncode}")
+                self.is_paused = False
+                self.script_succeeded = (self.current_process.returncode == 0)
 
-        except FileNotFoundError:
-            self._add_output(LogLevel.ERROR, f"Python executable not found: {sys.executable}")
-            self.last_exit_code = 1
-            self.script_succeeded = False
-        except subprocess.TimeoutExpired:
-            self._add_output(LogLevel.ERROR, "Script communication timeout")
-            self.last_exit_code = 1
-            self.script_succeeded = False
+                if self.current_process.returncode == 0:
+                    self._add_output(LogLevel.SYSTEM, "Script completed successfully")
+                else:
+                    self._add_output(LogLevel.ERROR, f"Script exited with code {self.current_process.returncode}")
+
         except Exception as e:
             self._add_output(LogLevel.ERROR, f"Error running script: {str(e)}")
             self.last_exit_code = 1
             self.script_succeeded = False
+            self.is_paused = False
         finally:
             self.is_running = False
             self.current_process = None
-
     def _run_simulation(self):
         """Run the enhanced script simulation with different log levels"""
         # Original simulation code - kept as fallback
@@ -370,6 +407,14 @@ class ScriptRunner:
             message: The message content
         """
         self.output_queue.put((msg_type, message))
+
+    def is_script_paused(self) -> bool:
+        """Check if the script is currently paused"""
+        return self.is_paused
+
+    def get_pause_state(self) -> Optional[str]:
+        """Get the pause state file path if script is paused"""
+        return self.pause_state if self.is_paused else None
 
     @property
     def is_alive(self) -> bool:
