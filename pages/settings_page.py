@@ -118,7 +118,7 @@ class SettingsPage(BasePage):
         row = 0
 
         # Theme
-        theme_label = ctk.CTkLabel(parent, text="Theme:")
+        theme_label = ctk.CTkLabel(parent, text="Theme:  ")
         theme_label.grid(row=row, column=0, sticky="w", pady=5)
 
         self.theme_var = ctk.StringVar(value=self.get_state('theme', 'dark'))
