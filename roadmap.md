@@ -20,6 +20,7 @@
     * **Implementation Complete:** Full-featured history dialog with advanced filtering, search, and export capabilities.
 * **Undo/Redo for Console Clearing:** Add an undo/redo functionality for the console clearing action.
 * **Add ability to favorite scripts for easy run access:** Let the user favorite scripts that they frequently use which gives them quick access to run those.
+* Add a search bad to the output console, along with a copy button to copy entire output (the copy button could be combined with the export button, maybe a dropdown/button combo?)
 
 ### New Enhancement Ideas 💡
 Based on the completed history feature, consider these additions:
@@ -33,10 +34,10 @@ Based on the completed history feature, consider these additions:
 ---
 ## Fixes 🛠️
 
-* **SOP Buttons on Scripts Page:**
-    * Reintroduce SOP buttons to each script card on the Scripts page.
-    * Link these buttons to the corresponding SOPs, similar to how the SOPs page functions.
-* **SOP Page Card Sizing:**
+* ~~**SOP Buttons on Scripts Page:**~~ ✅ **COMPLETED**
+    * ~~Reintroduce SOP buttons to each script card on the Scripts page.~~
+    * ~~Link these buttons to the corresponding SOPs, similar to how the SOPs page functions.~~
+* **SOP Page Card Sizing/Appearance:**
     * Address the left-alignment issue of data within SOP cards, which causes visual distortions when the window size increases.
     * Improve the layout when filtering results in a single card, preventing excessive empty space on the right. Implement a new system for better visual presentation.
 * **Legacy Header Container:**
