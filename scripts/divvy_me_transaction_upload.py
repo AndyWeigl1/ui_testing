@@ -456,7 +456,7 @@ def main(resume_state=None):
             "Excel file opened for review. Please review the file, save and close it, then click 'Continue' to proceed.")
 
         # Return special code to indicate pause
-        return -99, state  # -99 indicates "paused for review"
+        return 99, state  # -99 indicates "paused for review"
 
     except Exception as e:
         log(LogLevel.ERROR, f"Unexpected error: {str(e)}")
