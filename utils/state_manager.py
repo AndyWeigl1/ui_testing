@@ -292,6 +292,61 @@ class StateManager:
         self._event_bus.publish('state.rollback', {})
         self._logger.info("State rolled back to previous state")
 
+    def save_to_file(self, filepath: str = "config/user_settings.json") -> bool:
+        """Save current state to a JSON file
+
+        Args:
+            filepath: Path to save the settings file
+
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            import json
+            import os
+
+            # Ensure directory exists
+            os.makedirs(os.path.dirname(filepath), exist_ok=True)
+
+            # Save state to file
+            with open(filepath, 'w') as f:
+                json.dump(self._state, f, indent=2)
+
+            self._logger.info(f"Settings saved to {filepath}")
+            return True
+        except Exception as e:
+            self._logger.error(f"Error saving settings to file: {e}")
+            return False
+
+    def load_from_file(self, filepath: str = "config/user_settings.json") -> bool:
+        """Load state from a JSON file
+
+        Args:
+            filepath: Path to load the settings file from
+
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            import json
+            import os
+
+            if not os.path.exists(filepath):
+                self._logger.info(f"Settings file {filepath} not found, using defaults")
+                return False
+
+            with open(filepath, 'r') as f:
+                loaded_state = json.load(f)
+
+            # Update current state with loaded values
+            self._state.update(loaded_state)
+
+            self._logger.info(f"Settings loaded from {filepath}")
+            return True
+        except Exception as e:
+            self._logger.error(f"Error loading settings from file: {e}")
+            return False
+
 
 # Global state manager instance
 _global_state_manager: Optional[StateManager] = None
