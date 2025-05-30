@@ -1,4 +1,4 @@
-"""Enhanced output console component with developer mode support"""
+"""Enhanced output console component with copy button"""
 
 import customtkinter as ctk
 import tkinter as tk
@@ -50,7 +50,7 @@ class OutputConsole(ctk.CTkFrame):
         self.add_output("Welcome to Script Runner! Click 'Run' to start your script.", LogLevel.SYSTEM)
 
     def create_header(self):
-        """Create the header with font controls, developer mode toggle, and export button"""
+        """Create the header with font controls, developer mode toggle, and copy button"""
         header_frame = ctk.CTkFrame(self, fg_color="transparent")
         header_frame.grid(row=0, column=0, padx=10, pady=(10, 5), sticky="ew")
         header_frame.grid_columnconfigure(0, weight=1)
@@ -95,15 +95,15 @@ class OutputConsole(ctk.CTkFrame):
         )
         font_size_slider.grid(row=0, column=1, padx=5)
 
-        # Export button
-        self.export_btn = ctk.CTkButton(
+        # Copy button (replacing the old export button)
+        self.copy_btn = ctk.CTkButton(
             header_frame,
-            text="Export",
+            text="📋 Copy",
             width=80,
             height=28,
-            command=self.export_output
+            command=self.copy_output
         )
-        self.export_btn.grid(row=0, column=3, padx=5)
+        self.copy_btn.grid(row=0, column=3, padx=5)
 
     def create_output_display(self):
         """Create the text widget for output display"""
@@ -150,6 +150,28 @@ class OutputConsole(ctk.CTkFrame):
 
         # Show all other standard messages
         return msg_type in always_show
+
+    def copy_output(self):
+        """Copy console output to clipboard"""
+        try:
+            content = self.output_text.get("1.0", "end-1c")
+
+            # Clear clipboard and set new content
+            self.clipboard_clear()
+            self.clipboard_append(content)
+
+            # Update the copy button temporarily to show feedback
+            original_text = self.copy_btn.cget("text")
+            self.copy_btn.configure(text="✓ Copied!")
+
+            # Revert button text after 1.5 seconds
+            self.after(1500, lambda: self.copy_btn.configure(text=original_text))
+
+            # Add a system message to the console
+            self.add_output("Console output copied to clipboard", LogLevel.SYSTEM)
+
+        except Exception as e:
+            self.add_output(f"Failed to copy to clipboard: {str(e)}", LogLevel.ERROR)
 
     def add_output(self, message: str, msg_type: str = "info", force_display: bool = False):
         """Add a message to the output console with timestamp and filtering"""
@@ -238,7 +260,7 @@ class OutputConsole(ctk.CTkFrame):
         self.output_text.configure(state="disabled")
 
     def export_output(self):
-        """Export output to a file"""
+        """Export output to a file (kept for backward compatibility)"""
         from tkinter import filedialog
 
         filename = filedialog.asksaveasfilename(
