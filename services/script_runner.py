@@ -264,7 +264,7 @@ class ScriptRunner:
             self.last_exit_code = self.current_process.returncode
 
             # Check for special pause exit code
-            if self.current_process.returncode == -99:
+            if self.current_process.returncode == 99:
                 self.is_paused = True
                 self.script_succeeded = None  # Not finished yet
                 self._add_output(LogLevel.SYSTEM, "Script paused for user review")
