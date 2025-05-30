@@ -8,13 +8,14 @@ from config.themes import COLORS
 class ControlPanel(ctk.CTkFrame):
     """Control panel with script execution controls and progress indicator"""
 
-    def __init__(self, master, on_run=None, on_stop=None, on_clear=None, **kwargs):
+    def __init__(self, master, on_run=None, on_stop=None, on_clear=None, on_continue=None, **kwargs):
         super().__init__(master, fg_color="transparent", **kwargs)
 
         # Store callbacks
         self.on_run_callback = on_run
         self.on_stop_callback = on_stop
         self.on_clear_callback = on_clear
+        self.on_continue_callback = on_continue
 
         # Configure grid
         self.grid_columnconfigure(0, weight=1)
@@ -40,6 +41,18 @@ class ControlPanel(ctk.CTkFrame):
             hover_color=COLORS["run_button_hover"]
         )
         self.run_button.grid(row=0, column=0, padx=10)
+
+        # Continue button (initially hidden)
+        self.continue_button = ctk.CTkButton(
+            button_frame,
+            text="▶ Continue",
+            width=CONTROL_BUTTON_WIDTH,
+            height=CONTROL_BUTTON_HEIGHT,
+            font=ctk.CTkFont(size=16, weight="bold"),
+            command=self.handle_continue,
+            fg_color="#2196F3",  # Blue color for continue
+            hover_color="#1976D2"
+        )
 
         # Stop button
         self.stop_button = ctk.CTkButton(
@@ -84,6 +97,11 @@ class ControlPanel(ctk.CTkFrame):
         if self.on_run_callback:
             self.on_run_callback()
 
+    def handle_continue(self):
+        """Handle continue button click"""
+        if self.on_continue_callback:
+            self.on_continue_callback()
+
     def handle_stop(self):
         """Handle stop button click"""
         if self.on_stop_callback:
@@ -97,13 +115,28 @@ class ControlPanel(ctk.CTkFrame):
     def set_running_state(self, is_running):
         """Update button states based on running state"""
         if is_running:
-            self.run_button.configure(state="disabled")
+            self.run_button.grid_forget()
+            self.continue_button.grid_forget()
             self.stop_button.configure(state="normal")
             self.show_progress()
         else:
-            self.run_button.configure(state="normal")
+            self.run_button.grid(row=0, column=0, padx=10)
+            self.continue_button.grid_forget()
             self.stop_button.configure(state="disabled")
             self.hide_progress()
+
+    def set_paused_state(self, is_paused):
+        """Update button states for paused state"""
+        if is_paused:
+            # Replace Run button with Continue button
+            self.run_button.grid_forget()
+            self.continue_button.grid(row=0, column=0, padx=10)
+            self.stop_button.configure(state="disabled")
+            self.hide_progress()
+        else:
+            # Show Run button again
+            self.continue_button.grid_forget()
+            self.run_button.grid(row=0, column=0, padx=10)
 
     def show_progress(self):
         """Show and start the progress bar"""
