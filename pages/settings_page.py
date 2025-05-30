@@ -1,4 +1,4 @@
-"""Settings page - application configuration (UPDATED WITH NOTIFICATION SETTINGS)"""
+"""Settings page - application configuration (CLEANED VERSION)"""
 
 import customtkinter as ctk
 from pages.base_page import BasePage
@@ -49,7 +49,7 @@ class SettingsPage(BasePage):
         )
         self.create_sound_settings(sound_section.content_frame)
 
-        # System Notifications section - NEW
+        # System Notifications section
         notification_section = self.create_settings_section(
             "System Notifications",
             self.scrollable_frame,
@@ -65,17 +65,9 @@ class SettingsPage(BasePage):
         )
         self.create_execution_settings(execution_section.content_frame)
 
-        # Advanced section
-        advanced_section = self.create_settings_section(
-            "Advanced",
-            self.scrollable_frame,
-            row=6
-        )
-        self.create_advanced_settings(advanced_section.content_frame)
-
-        # Save/Reset buttons
+        # Save/Reset buttons (updated row number since Advanced section was removed)
         button_frame = ctk.CTkFrame(self.scrollable_frame, fg_color="transparent")
-        button_frame.grid(row=7, column=0, pady=(30, 0), sticky="ew")
+        button_frame.grid(row=6, column=0, pady=(30, 0), sticky="ew")
         button_frame.grid_columnconfigure(0, weight=1)
 
         save_btn = ctk.CTkButton(
@@ -122,7 +114,7 @@ class SettingsPage(BasePage):
         return section
 
     def create_appearance_settings(self, parent):
-        """Create appearance settings"""
+        """Create appearance settings (cleaned - removed accent color)"""
         row = 0
 
         # Theme
@@ -137,24 +129,9 @@ class SettingsPage(BasePage):
             command=self.on_theme_changed
         )
         theme_menu.grid(row=row, column=1, sticky="w", pady=5)
-        row += 1
-
-        # Accent color (placeholder)
-        accent_label = ctk.CTkLabel(parent, text="Accent Color:  ")
-        accent_label.grid(row=row, column=0, sticky="w", pady=5)
-
-        self.accent_var = ctk.StringVar(value="blue")
-        accent_menu = ctk.CTkOptionMenu(
-            parent,
-            values=["blue", "green", "red", "purple"],
-            variable=self.accent_var,
-            state="disabled"  # Not implemented yet
-        )
-        accent_menu.grid(row=row, column=1, sticky="w", pady=5)
-        row += 1
 
     def create_console_settings(self, parent):
-        """Create console settings"""
+        """Create console settings (cleaned - removed font family and line wrap)"""
         row = 0
 
         # Font size
@@ -181,32 +158,6 @@ class SettingsPage(BasePage):
         )
         font_slider.grid(row=0, column=1, sticky="ew")
         font_frame.grid_columnconfigure(1, weight=1)
-        row += 1
-
-        # Font family (placeholder)
-        font_family_label = ctk.CTkLabel(parent, text="Font Family:  ")
-        font_family_label.grid(row=row, column=0, sticky="w", pady=5)
-
-        self.font_family_var = ctk.StringVar(value="Consolas")
-        font_family_menu = ctk.CTkOptionMenu(
-            parent,
-            values=["Consolas", "Courier New", "Monaco", "Ubuntu Mono"],
-            variable=self.font_family_var,
-            state="disabled"  # Not implemented yet
-        )
-        font_family_menu.grid(row=row, column=1, sticky="w", pady=5)
-        row += 1
-
-        # Line wrap
-        self.line_wrap_var = ctk.BooleanVar(value=True)
-        line_wrap_check = ctk.CTkCheckBox(
-            parent,
-            text="Wrap long lines",
-            variable=self.line_wrap_var,
-            state="disabled"  # Not implemented yet
-        )
-        line_wrap_check.grid(row=row, column=0, columnspan=2, sticky="w", pady=5)
-        row += 1
 
     def create_sound_settings(self, parent):
         """Create sound notification settings"""
@@ -306,7 +257,7 @@ class SettingsPage(BasePage):
             row += 1
 
     def create_notification_settings(self, parent):
-        """Create system notification settings - NEW SECTION"""
+        """Create system notification settings"""
         row = 0
 
         # Get notification manager
@@ -455,66 +406,6 @@ class SettingsPage(BasePage):
             text_color=("gray30", "gray70")
         )
         dev_help_label.grid(row=row + 1, column=0, columnspan=2, sticky="w", padx=(25, 0))
-        row += 2
-
-        # Output buffer size (placeholder)
-        buffer_label = ctk.CTkLabel(parent, text="Output Buffer Size:")
-        buffer_label.grid(row=row, column=0, sticky="w", pady=5)
-
-        self.buffer_size_var = ctk.StringVar(value="1000 lines")
-        buffer_entry = ctk.CTkEntry(
-            parent,
-            textvariable=self.buffer_size_var,
-            state="disabled"  # Not implemented yet
-        )
-        buffer_entry.grid(row=row, column=1, sticky="w", pady=5)
-        row += 1
-
-    def create_advanced_settings(self, parent):
-        """Create advanced settings"""
-        row = 0
-
-        # Debug mode
-        self.debug_mode_var = ctk.BooleanVar(value=False)
-        debug_check = ctk.CTkCheckBox(
-            parent,
-            text="Enable debug mode",
-            variable=self.debug_mode_var
-        )
-        debug_check.grid(row=row, column=0, columnspan=2, sticky="w", pady=5)
-        row += 1
-
-        # Log level (placeholder)
-        log_label = ctk.CTkLabel(parent, text="Log Level:")
-        log_label.grid(row=row, column=0, sticky="w", pady=5)
-
-        self.log_level_var = ctk.StringVar(value="INFO")
-        log_menu = ctk.CTkOptionMenu(
-            parent,
-            values=["DEBUG", "INFO", "WARNING", "ERROR"],
-            variable=self.log_level_var,
-            state="disabled"  # Not implemented yet
-        )
-        log_menu.grid(row=row, column=1, sticky="w", pady=5)
-        row += 1
-
-        # Export settings button
-        export_btn = ctk.CTkButton(
-            parent,
-            text="Export Settings",
-            command=self.export_settings,
-            fg_color=("gray70", "gray30")
-        )
-        export_btn.grid(row=row, column=0, pady=(10, 0))
-
-        # Import settings button
-        import_btn = ctk.CTkButton(
-            parent,
-            text="Import Settings",
-            command=self.import_settings,
-            fg_color=("gray70", "gray30")
-        )
-        import_btn.grid(row=row, column=1, sticky="w", padx=(10, 0), pady=(10, 0))
 
     def on_theme_changed(self, theme: str):
         """Handle theme change"""
@@ -550,7 +441,6 @@ class SettingsPage(BasePage):
         self.sound_manager.test_sound(sound_type)
         self.show_message(f"Playing {sound_type} sound...", "info")
 
-    # NEW NOTIFICATION METHODS
     def on_notifications_enabled_changed(self):
         """Handle system notifications enabled toggle"""
         enabled = self.notifications_enabled_var.get()
@@ -589,7 +479,6 @@ class SettingsPage(BasePage):
             'auto_scroll': self.auto_scroll_var.get(),
             'clear_on_run': self.clear_on_run_var.get(),
             'developer_mode': self.developer_mode_var.get(),
-            'debug_mode': self.debug_mode_var.get(),
             # Sound settings
             'sounds_enabled': self.sounds_enabled_var.get(),
             'sound_volume': self.volume_var.get(),
@@ -634,7 +523,6 @@ class SettingsPage(BasePage):
         self.font_size_var.set(12)
         self.auto_scroll_var.set(True)
         self.clear_on_run_var.set(False)
-        self.debug_mode_var.set(False)
         self.developer_mode_var.set(False)
 
         # Reset sound settings
@@ -659,14 +547,6 @@ class SettingsPage(BasePage):
         # Save the reset settings
         self.save_settings()
         self.show_message("Settings reset to defaults", "info")
-
-    def export_settings(self):
-        """Export settings to file"""
-        self.show_message("Settings export not yet implemented", "info")
-
-    def import_settings(self):
-        """Import settings from file"""
-        self.show_message("Settings import not yet implemented", "info")
 
     def on_activate(self):
         """Called when settings page becomes active"""
