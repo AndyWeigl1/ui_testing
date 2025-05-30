@@ -581,7 +581,7 @@ class SettingsPage(BasePage):
         self.show_message(f"Showing {notification_type} notification...", "info")
 
     def save_settings(self):
-        """Save current settings"""
+        """Save current settings with correct key naming"""
         # Gather all settings
         settings = {
             'theme': self.theme_var.get(),
@@ -593,18 +593,20 @@ class SettingsPage(BasePage):
             # Sound settings
             'sounds_enabled': self.sounds_enabled_var.get(),
             'sound_volume': self.volume_var.get(),
-            # Notification settings - NEW
+            # Notification settings
             'notifications_enabled': self.notifications_enabled_var.get(),
             'notification_duration': self.duration_var.get(),
         }
 
-        # Add individual sound type settings
+        # Add individual sound type settings with correct keys
         for sound_key, var in self.sound_type_vars.items():
-            settings[sound_key] = var.get()
+            # Add the 'sound_' prefix to match what the integration expects
+            settings[f'sound_{sound_key}'] = var.get()
 
-        # Add individual notification type settings - NEW
+        # Add individual notification type settings with correct keys
         for notif_key, var in self.notification_type_vars.items():
-            settings[notif_key] = var.get()
+            # Add the 'notification_' prefix to match what the integration expects
+            settings[f'notification_{notif_key}'] = var.get()
 
         # Update state
         self.state_manager.update(settings)
@@ -613,11 +615,16 @@ class SettingsPage(BasePage):
         self.sound_manager.set_enabled(settings['sounds_enabled'])
         self.sound_manager.set_volume(settings['sound_volume'])
 
-        # Apply notification settings to notification manager - NEW
+        # Apply notification settings to notification manager
         self.notification_manager.set_enabled(settings['notifications_enabled'])
         self.notification_manager.set_duration(settings['notification_duration'])
 
-        self.show_message("Settings saved successfully!", "success")
+        # Save to file for persistence
+        if self.state_manager.save_to_file():
+            self.show_message("Settings saved successfully!", "success")
+        else:
+            self.show_message("Settings updated but failed to save to disk", "warning")
+
         self.publish_event('settings.saved', {'settings': settings})
 
     def reset_settings(self):
@@ -634,21 +641,20 @@ class SettingsPage(BasePage):
         self.sounds_enabled_var.set(True)
         self.volume_var.set(0.7)
 
-        # Reset notification settings - NEW
+        # Reset notification settings
         self.notifications_enabled_var.set(True)
         self.duration_var.set(5)
 
         for var in self.sound_type_vars.values():
             var.set(True)
 
-        # Reset notification type settings - NEW
         for var in self.notification_type_vars.values():
             var.set(True)
 
         # Update UI
         self.font_size_label.configure(text="12px")
         self.volume_label.configure(text="70%")
-        self.duration_label.configure(text="5s")  # NEW
+        self.duration_label.configure(text="5s")
 
         # Save the reset settings
         self.save_settings()
@@ -677,15 +683,15 @@ class SettingsPage(BasePage):
         self.volume_var.set(self.get_state('sound_volume', 0.7))
         self.volume_label.configure(text=f"{int(self.volume_var.get() * 100)}%")
 
-        # Update notification settings - NEW
+        # Update notification settings
         self.notifications_enabled_var.set(self.get_state('notifications_enabled', True))
         self.duration_var.set(self.get_state('notification_duration', 5))
         self.duration_label.configure(text=f"{self.duration_var.get()}s")
 
-        # Update sound type settings
+        # Update sound type settings with correct keys
         for sound_key, var in self.sound_type_vars.items():
-            var.set(self.get_state(sound_key, True))
+            var.set(self.get_state(f'sound_{sound_key}', True))
 
-        # Update notification type settings - NEW
+        # Update notification type settings with correct keys
         for notif_key, var in self.notification_type_vars.items():
-            var.set(self.get_state(notif_key, True))
+            var.set(self.get_state(f'notification_{notif_key}', True))
