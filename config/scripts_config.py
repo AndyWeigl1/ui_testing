@@ -98,6 +98,36 @@ AVAILABLE_SCRIPTS = {
         }
     },
 
+    "Divvy ME Transaction Upload": {
+        "path": "scripts/divvy_me_transaction_upload.py",
+        "description": "Processes Divvy transaction files and creates upload files for NetSuite with review step",
+        "category": "Financial Processing",
+        "tags": ["divvy", "transactions", "netsuite", "upload", "financial", "excel"],
+        "parameters": {},
+        "configurable_paths": {
+            "transaction_mapping_file": {
+                "description": "CSV file containing merchant to GL mapping rules",
+                "default_components": ["Banking", "Bill Divvy", "Imports", "Excel Files", "Transaction Mapping.csv"],
+                "type": "file"
+            },
+            "transaction_file_folder": {
+                "description": "Folder containing transaction CSV files to process",
+                "default_components": ["Banking", "Bill Divvy", "Imports", "Transaction File"],
+                "type": "directory"
+            },
+            "upload_template_file": {
+                "description": "Excel template file for reviewing transactions",
+                "default_components": ["Banking", "Bill Divvy", "Imports", "Divvy ME Upload Template.xlsx"],
+                "type": "file"
+            },
+            "csv_upload_base_folder": {
+                "description": "Base folder where processed CSV files will be saved",
+                "default_components": ["Banking", "Bill Divvy"],
+                "type": "directory"
+            }
+        }
+    }
+
     # "File Organizer": {
     #     "path": "scripts/file_organizer.py",
     #     "description": "Organizes files into categories",
