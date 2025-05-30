@@ -37,18 +37,24 @@ class ScriptRunner:
         self.paused_script_path = None
         self.paused_script_args = None
 
-    def start(self, script_path: Optional[str] = None, args: Optional[List[str]] = None, developer_mode: bool = False,
+    def start(self, script_path: str, args: Optional[List[str]] = None, developer_mode: bool = False,
               resume: bool = False):
         """Start running a script with optional resume support
 
         Args:
-            script_path: Path to the script to run (None for simulation)
+            script_path: Path to the script to run
             args: Command line arguments for the script
             developer_mode: Whether to output debug-level messages
             resume: Whether this is resuming a paused script
         """
         if self.is_running:
             raise RuntimeError("Script is already running")
+
+        if not script_path:
+            raise RuntimeError("No script path provided")
+
+        if not os.path.exists(script_path):
+            raise RuntimeError(f"Script file not found: {script_path}")
 
         self.is_running = True
         self._stop_requested = False
@@ -65,19 +71,12 @@ class ScriptRunner:
         self.paused_script_path = script_path
         self.paused_script_args = args or []
 
-        if script_path and os.path.exists(script_path):
-            # Run actual script
-            self.current_thread = threading.Thread(
-                target=self._run_script,
-                args=(script_path, args or [], resume),
-                daemon=True
-            )
-        else:
-            # Run simulation if no valid script path
-            self.current_thread = threading.Thread(
-                target=self._run_simulation,
-                daemon=True
-            )
+        # Run the actual script
+        self.current_thread = threading.Thread(
+            target=self._run_script,
+            args=(script_path, args or [], resume),
+            daemon=True
+        )
 
         self.current_thread.start()
 
@@ -290,114 +289,6 @@ class ScriptRunner:
         finally:
             self.is_running = False
             self.current_process = None
-    def _run_simulation(self):
-        """Run the enhanced script simulation with different log levels"""
-        # Original simulation code - kept as fallback
-        operations = [
-            ("Starting script execution...", LogLevel.INFO, True),
-            ("Initializing components...", LogLevel.INFO, True),
-            ("Loading configuration...", LogLevel.INFO, True),
-            ("Connecting to database...", LogLevel.INFO, True),
-            ("Fetching data...", LogLevel.INFO, True),
-            ("Processing records...", LogLevel.INFO, True),
-            ("Generating report...", LogLevel.INFO, True),
-            ("Finalizing operations...", LogLevel.INFO, True),
-        ]
-
-        # Debug details for each operation
-        debug_details = {
-            0: [
-                ("Python version: 3.9.7", LogLevel.DEBUG),
-                ("Script path: /scripts/simulation.py", LogLevel.DEBUG),
-                ("Working directory: /home/user/projects", LogLevel.DEBUG),
-            ],
-            1: [
-                ("Loading module: pandas v1.3.4", LogLevel.DEBUG),
-                ("Loading module: numpy v1.21.4", LogLevel.DEBUG),
-                ("Memory allocated: 128MB", LogLevel.DEBUG),
-            ],
-            2: [
-                ("Config file: config.json", LogLevel.DEBUG),
-                ("Parsing JSON configuration...", LogLevel.DEBUG),
-                ("Validated 15 configuration parameters", LogLevel.DEBUG),
-            ],
-            3: [
-                ("Database host: localhost:5432", LogLevel.DEBUG),
-                ("Connection pool size: 10", LogLevel.DEBUG),
-                ("SSL mode: require", LogLevel.DEBUG),
-                ("Connection established in 0.23 seconds", LogLevel.DEBUG),
-            ],
-            4: [
-                ("Query: SELECT * FROM sales_data WHERE date >= '2024-01-01'", LogLevel.DEBUG),
-                ("Fetching 10,000 records...", LogLevel.DEBUG),
-                ("Data transfer rate: 2.3 MB/s", LogLevel.DEBUG),
-            ],
-            5: [
-                ("Applying data transformations...", LogLevel.DEBUG),
-                ("Validating data integrity...", LogLevel.DEBUG),
-                ("Calculating aggregations...", LogLevel.DEBUG),
-            ],
-            6: [
-                ("Template: quarterly_report.html", LogLevel.DEBUG),
-                ("Generating charts...", LogLevel.DEBUG),
-                ("Compiling PDF output...", LogLevel.DEBUG),
-            ],
-            7: [
-                ("Closing database connections...", LogLevel.DEBUG),
-                ("Clearing temporary files...", LogLevel.DEBUG),
-                ("Total execution time: 4.7 seconds", LogLevel.DEBUG),
-            ],
-        }
-
-        try:
-            for i, (operation, level, has_debug) in enumerate(operations):
-                if self._stop_requested:
-                    self._add_output(LogLevel.WARNING, "Script execution interrupted by user.")
-                    self.last_exit_code = -1  # User stopped
-                    self.script_succeeded = False
-                    break
-
-                self._add_output(level, operation)
-
-                if has_debug and i in debug_details:
-                    for debug_msg, debug_level in debug_details[i]:
-                        self._add_output(debug_level, debug_msg)
-                        time.sleep(0.1)
-
-                time.sleep(SCRIPT_SIMULATION_DELAY)
-
-                if i == 5:  # Processing records
-                    for j in range(5):
-                        if self._stop_requested:
-                            break
-
-                        self._add_output(LogLevel.INFO, f"  Processing batch {j + 1}/5...")
-                        self._add_output(LogLevel.DEBUG, f"    Records {j*2000+1}-{(j+1)*2000}: Validated")
-                        self._add_output(LogLevel.DEBUG, f"    Memory usage: {64 + j*12}MB")
-                        self._add_output(LogLevel.DEBUG, f"    Processing rate: {1.8 + j*0.1:.1f}k records/sec")
-
-                        time.sleep(0.5)
-
-                    if not self._stop_requested:
-                        self._add_output(LogLevel.WARNING, "  Warning: 3 records had missing values and were skipped")
-                        self._add_output(LogLevel.DEBUG, "    Missing values in columns: [customer_id, purchase_date, amount]")
-
-            if not self._stop_requested:
-                self._add_output(LogLevel.SUCCESS, "Script completed successfully!")
-                self._add_output(LogLevel.INFO, "Output saved to: /output/report_2024_01_15.pdf")
-                self._add_output(LogLevel.DEBUG, "Total memory peak: 256MB")
-                self._add_output(LogLevel.DEBUG, "CPU usage average: 45%")
-
-                # Simulation always succeeds unless stopped
-                self.last_exit_code = 0
-                self.script_succeeded = True
-
-        except Exception as e:
-            self._add_output(LogLevel.ERROR, f"Simulation error: {str(e)}")
-            self.last_exit_code = 1
-            self.script_succeeded = False
-        finally:
-            self.is_running = False
 
     def _add_output(self, msg_type: str, message: str):
         """Add a message to the output queue
