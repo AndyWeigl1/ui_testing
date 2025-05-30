@@ -274,6 +274,27 @@ class SettingsPage(BasePage):
         notifications_check.grid(row=row, column=0, columnspan=2, sticky="w", pady=5)
         row += 1
 
+        # NEW: Silent notifications toggle
+        self.silent_notifications_var = ctk.BooleanVar(value=self.get_state('silent_notifications', True))
+        silent_notifications_check = ctk.CTkCheckBox(
+            parent,
+            text="Silent system notifications (no OS sounds)",
+            variable=self.silent_notifications_var,
+            command=self.on_silent_notifications_changed
+        )
+        silent_notifications_check.grid(row=row, column=0, columnspan=2, sticky="w", pady=5)
+        row += 1
+
+        # Add help text for silent notifications
+        silent_help_label = ctk.CTkLabel(
+            parent,
+            text="    Prevents system notification sounds from playing alongside GUI sounds",
+            font=ctk.CTkFont(size=11),
+            text_color=("gray30", "gray70")
+        )
+        silent_help_label.grid(row=row, column=0, columnspan=2, sticky="w", padx=(25, 0))
+        row += 1
+
         # Duration control
         duration_label = ctk.CTkLabel(parent, text="Duration:")
         duration_label.grid(row=row, column=0, sticky="w", pady=5)
@@ -363,6 +384,17 @@ class SettingsPage(BasePage):
             text_color=("gray30", "gray70")
         )
         platform_info_label.grid(row=row, column=0, columnspan=2, sticky="w", pady=(10, 0))
+
+    def on_silent_notifications_changed(self):
+        """Handle silent notifications toggle"""
+        silent = self.silent_notifications_var.get()
+        self.set_state('silent_notifications', silent)
+        self.notification_manager.set_silent(silent)
+
+        if silent:
+            self.show_message("System notification sounds disabled", "success")
+        else:
+            self.show_message("System notification sounds enabled", "info")
 
     def create_execution_settings(self, parent):
         """Create script execution settings"""
@@ -485,6 +517,7 @@ class SettingsPage(BasePage):
             # Notification settings
             'notifications_enabled': self.notifications_enabled_var.get(),
             'notification_duration': self.duration_var.get(),
+            'silent_notifications': self.silent_notifications_var.get(),  # NEW
         }
 
         # Add individual sound type settings with correct keys
