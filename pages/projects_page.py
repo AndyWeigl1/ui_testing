@@ -46,7 +46,7 @@ class ProjectsPage(BasePage):
         super().__init__(parent, state_manager, event_bus, **kwargs)
 
     def setup_ui(self):
-        """Set up the Projects page UI"""
+        """Set up the Projects page UI with properly configured scrolling"""
         # Main container
         main_container = ctk.CTkFrame(self, fg_color="transparent")
         main_container.grid(row=0, column=0, padx=20, pady=20, sticky="nsew")
@@ -74,13 +74,33 @@ class ProjectsPage(BasePage):
         list_container.grid_columnconfigure(0, weight=1)
         list_container.grid_rowconfigure(0, weight=1)
 
-        # Scrollable frame for projects
-        self.scrollable_frame = ctk.CTkScrollableFrame(list_container)
+        # Create fast scrollable frame for projects
+        self.scrollable_frame = self.create_fast_scrollable_frame(list_container)
         self.scrollable_frame.grid(row=0, column=0, sticky="nsew", padx=2, pady=2)
         self.scrollable_frame.grid_columnconfigure(0, weight=1)
 
+        # ADDITIONAL FIX: Apply scroll configuration after a delay to ensure it takes
+        self.after(200, self.ensure_scroll_binding)
+
         # Initialize projects data (but don't create widgets yet)
         self.initialize_projects_data()
+
+    def ensure_scroll_binding(self):
+        """Ensure scroll binding is properly applied to the scrollable frame"""
+        # Re-apply scroll speed configuration
+        self.configure_scroll_speed(self.scrollable_frame, speed_factor=4)
+
+        # Schedule periodic re-binding to handle dynamic content
+        self.after(1000, self.refresh_scroll_binding)
+
+    def refresh_scroll_binding(self):
+        """Periodically refresh scroll binding for dynamic content"""
+        if hasattr(self, 'scrollable_frame') and self.scrollable_frame.winfo_exists():
+            try:
+                # Re-apply scroll binding
+                self.configure_scroll_speed(self.scrollable_frame, speed_factor=4)
+            except:
+                pass  # Ignore if frame no longer exists
 
     def create_search_filter_bar(self, parent):
         """Create search and filter controls"""
@@ -268,6 +288,8 @@ class ProjectsPage(BasePage):
         if not projects:
             self.show_empty_state()
 
+        self.after(100, lambda: self.configure_scroll_speed(self.scrollable_frame, speed_factor=4))
+
     def create_next_card(self):
         """Create the next pending card (deferred loading)"""
         if not self.pending_cards:
@@ -356,31 +378,23 @@ class ProjectsPage(BasePage):
                     tags_frame,
                     text=f"#{tag}",
                     font=ctk.CTkFont(size=11),
-                    fg_color=tag_color,
-                    text_color="white",
+                    fg_color="transparent",  # Changed to remove background fill
+                    text_color=tag_color,  # Changed to use the tag's specific color for text
                     corner_radius=10,
-                    padx=8,
-                    pady=2
+                    padx=0,
+                    pady=20
                 )
                 tag_label.grid(row=0, column=i, padx=(0, 5), sticky="w")
 
-        # Last run info only (removed path)
-        info_frame = ctk.CTkFrame(content_frame, fg_color="transparent")
-        info_frame.grid(row=3, column=0, sticky="ew", pady=(8, 0))
-        info_frame.grid_columnconfigure(0, weight=1)
+        # --- MODIFICATION START ---
+        # Create a single frame for the bottom row (buttons and last run info)
+        bottom_row_frame = ctk.CTkFrame(content_frame, fg_color="transparent")
+        bottom_row_frame.grid(row=3, column=0, sticky="ew", pady=(14, 0))
+        bottom_row_frame.grid_columnconfigure(1, weight=1)  # Make the right column expandable
 
-        last_run_label = ctk.CTkLabel(
-            info_frame,
-            text=f"Last run: {project['last_run']}",
-            font=ctk.CTkFont(size=11),
-            text_color=("gray30", "gray70")
-        )
-        last_run_label.grid(row=0, column=0, sticky="e")
-        self.dynamic_widgets[project['name']]['last_run_label'] = last_run_label
-
-        # Action buttons
-        button_frame = ctk.CTkFrame(card, fg_color="transparent")
-        button_frame.grid(row=1, column=0, padx=15, pady=(0, 15), sticky="ew")
+        # Action buttons frame (will be placed on the left of bottom_row_frame)
+        button_frame = ctk.CTkFrame(bottom_row_frame, fg_color="transparent")
+        button_frame.grid(row=0, column=0, sticky="w")  # Align to the west (left)
 
         run_btn = ctk.CTkButton(
             button_frame,
@@ -430,6 +444,23 @@ class ProjectsPage(BasePage):
             command=lambda p=project: self.clear_project_history(p)
         )
         clear_btn.grid(row=0, column=next_button_column, padx=(5, 0))
+
+        # Last run info label (will be placed on the right of bottom_row_frame)
+        last_run_label = ctk.CTkLabel(
+            bottom_row_frame,  # Parent is now bottom_row_frame
+            text=f"Last run: {project['last_run']}",
+            font=ctk.CTkFont(size=11),
+            text_color=("gray30", "gray70")
+        )
+        last_run_label.grid(row=0, column=1, sticky="e", padx=(10, 0))  # Align to the east (right)
+        self.dynamic_widgets[project['name']]['last_run_label'] = last_run_label
+        # --- MODIFICATION END ---
+
+        # Make card interactive
+        card.bind("<Enter>", lambda e, c=card: c.configure(border_color=("#1f6aa5", "#1f6aa5")))
+        card.bind("<Leave>", lambda e, c=card: c.configure(border_color=("gray70", "gray30")))
+
+        self.after(50, lambda: self.configure_scroll_speed(self.scrollable_frame, speed_factor=4))
 
     def show_empty_state(self):
         """Show empty state when no projects match the filter"""
