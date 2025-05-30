@@ -280,6 +280,188 @@ class ScriptHistoryManager:
             'last_failure': last_failure
         }
 
+    def get_runs_by_status(self, script_name: str, status: str) -> List[Dict[str, Any]]:
+        """Get all runs for a script filtered by status
+
+        Args:
+            script_name: Display name of the script
+            status: Status to filter by ('success', 'error', 'stopped')
+
+        Returns:
+            List of run dictionaries matching the status
+        """
+        history = self.load_history()
+        script_history = history.get(script_name, [])
+
+        return [run for run in script_history if run.get('status') == status]
+
+    def get_runs_in_date_range(self, script_name: str, start_date: str, end_date: str) -> List[Dict[str, Any]]:
+        """Get runs within a specific date range
+
+        Args:
+            script_name: Display name of the script
+            start_date: Start date in ISO format
+            end_date: End date in ISO format
+
+        Returns:
+            List of run dictionaries within the date range
+        """
+        from datetime import datetime
+
+        history = self.load_history()
+        script_history = history.get(script_name, [])
+
+        start_dt = datetime.fromisoformat(start_date)
+        end_dt = datetime.fromisoformat(end_date)
+
+        filtered_runs = []
+        for run in script_history:
+            try:
+                run_dt = datetime.fromisoformat(run.get('end_time', ''))
+                if start_dt <= run_dt <= end_dt:
+                    filtered_runs.append(run)
+            except ValueError:
+                continue  # Skip runs with invalid timestamps
+
+        return filtered_runs
+
+    def get_recent_runs(self, script_name: str, days: int = 7) -> List[Dict[str, Any]]:
+        """Get recent runs for a script
+
+        Args:
+            script_name: Display name of the script
+            days: Number of days to look back
+
+        Returns:
+            List of recent run dictionaries
+        """
+        from datetime import datetime, timedelta
+
+        end_date = datetime.now()
+        start_date = end_date - timedelta(days=days)
+
+        return self.get_runs_in_date_range(
+            script_name,
+            start_date.isoformat(),
+            end_date.isoformat()
+        )
+
+    def get_error_summary(self, script_name: str) -> Dict[str, int]:
+        """Get a summary of error types for a script
+
+        Args:
+            script_name: Display name of the script
+
+        Returns:
+            Dictionary mapping error types/exit codes to their counts
+        """
+        error_runs = self.get_runs_by_status(script_name, 'error')
+        error_summary = {}
+
+        for run in error_runs:
+            exit_code = run.get('exit_code', 'Unknown')
+            error_key = f"Exit Code {exit_code}"
+
+            if run.get('error_message'):
+                # Try to categorize by error message keywords
+                error_msg = run['error_message'].lower()
+                if 'file not found' in error_msg or 'no such file' in error_msg:
+                    error_key = "File Not Found"
+                elif 'permission denied' in error_msg:
+                    error_key = "Permission Denied"
+                elif 'timeout' in error_msg:
+                    error_key = "Timeout"
+                elif 'connection' in error_msg:
+                    error_key = "Connection Error"
+                # Add more categorizations as needed
+
+            error_summary[error_key] = error_summary.get(error_key, 0) + 1
+
+        return error_summary
+
+    def get_performance_metrics(self, script_name: str) -> Dict[str, float]:
+        """Get performance metrics for a script
+
+        Args:
+            script_name: Display name of the script
+
+        Returns:
+            Dictionary with performance metrics
+        """
+        history = self.load_history()
+        script_history = history.get(script_name, [])
+
+        if not script_history:
+            return {
+                'min_duration': 0,
+                'max_duration': 0,
+                'median_duration': 0,
+                'percentile_95': 0
+            }
+
+        durations = [run.get('duration', 0) for run in script_history if run.get('duration')]
+        durations.sort()
+
+        if not durations:
+            return {
+                'min_duration': 0,
+                'max_duration': 0,
+                'median_duration': 0,
+                'percentile_95': 0
+            }
+
+        n = len(durations)
+
+        return {
+            'min_duration': durations[0],
+            'max_duration': durations[-1],
+            'median_duration': durations[n // 2],
+            'percentile_95': durations[int(n * 0.95)] if n > 0 else 0
+        }
+
+    def export_script_history(self, script_name: str, file_path: str, format: str = 'csv') -> bool:
+        """Export script history to a file
+
+        Args:
+            script_name: Display name of the script
+            file_path: Path where to save the export
+            format: Export format ('csv', 'json')
+
+        Returns:
+            True if successful, False otherwise
+        """
+        history = self.load_history()
+        script_history = history.get(script_name, [])
+
+        if not script_history:
+            return False
+
+        try:
+            if format.lower() == 'csv':
+                import csv
+                with open(file_path, 'w', newline='', encoding='utf-8') as csvfile:
+                    fieldnames = ['script_name', 'script_path', 'status', 'exit_code',
+                                  'start_time', 'end_time', 'duration', 'error_message']
+                    writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+
+                    writer.writeheader()
+                    for run in script_history:
+                        writer.writerow(run)
+
+            elif format.lower() == 'json':
+                import json
+                with open(file_path, 'w', encoding='utf-8') as jsonfile:
+                    json.dump({script_name: script_history}, jsonfile, indent=2)
+
+            else:
+                return False
+
+            return True
+
+        except Exception as e:
+            print(f"Error exporting history: {e}")
+            return False
+
     def clear_history(self, script_name: Optional[str] = None) -> bool:
         """Clear execution history
 
