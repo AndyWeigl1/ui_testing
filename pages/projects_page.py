@@ -38,7 +38,7 @@ class ProjectsPage(BasePage):
         self.project_cards = {}  # Cache card widgets
         self.dynamic_widgets = {}  # Cache dynamic widgets (status, last run)
         self.projects_initialized = False
-        
+
         # For deferred loading
         self.pending_cards = []
         self.card_creation_after_id = None
@@ -137,7 +137,7 @@ class ProjectsPage(BasePage):
         """Initialize project data without creating widgets"""
         if self.projects_initialized:
             return
-            
+
         # Build projects list from available scripts configuration
         self.all_projects = []
 
@@ -155,7 +155,7 @@ class ProjectsPage(BasePage):
             }
 
             self.all_projects.append(project)
-        
+
         self.projects_initialized = True
 
     def update_dynamic_data(self):
@@ -163,10 +163,10 @@ class ProjectsPage(BasePage):
         for project in self.all_projects:
             # Get history info for this script
             last_run_time, last_status = self.history_manager.get_last_run_info(project['name'])
-            
+
             project['last_run'] = last_run_time or 'Never'
             project['status'] = last_status or 'idle'
-            
+
             # Update the UI if card exists
             if project['name'] in self.dynamic_widgets:
                 widgets = self.dynamic_widgets[project['name']]
@@ -248,7 +248,7 @@ class ProjectsPage(BasePage):
 
         # Prepare list of cards to create/show
         self.pending_cards = []
-        
+
         # Create/show project cards
         for i, project in enumerate(projects):
             if project['name'] in self.project_cards:
@@ -263,7 +263,7 @@ class ProjectsPage(BasePage):
         # Start deferred card creation if there are pending cards
         if self.pending_cards:
             self.create_next_card()
-        
+
         # Show empty state if no projects
         if not projects:
             self.show_empty_state()
@@ -272,11 +272,11 @@ class ProjectsPage(BasePage):
         """Create the next pending card (deferred loading)"""
         if not self.pending_cards:
             return
-            
+
         # Create one card
         project, index = self.pending_cards.pop(0)
         self.create_project_card(project, index)
-        
+
         # Schedule next card creation
         if self.pending_cards:
             self.card_creation_after_id = self.after(10, self.create_next_card)
@@ -287,7 +287,7 @@ class ProjectsPage(BasePage):
         card = ctk.CTkFrame(self.scrollable_frame)
         card.grid(row=index, column=0, padx=10, pady=5, sticky="ew")
         card.grid_columnconfigure(0, weight=1)
-        
+
         # Cache the card
         self.project_cards[project['name']] = card
         self.dynamic_widgets[project['name']] = {}
@@ -475,7 +475,7 @@ class ProjectsPage(BasePage):
         """Refresh only the dynamic data, not the entire UI"""
         # Update dynamic data
         self.update_dynamic_data()
-        
+
         # If we haven't displayed projects yet, do it now
         if not self.project_cards:
             self.filter_projects()
@@ -507,18 +507,35 @@ class ProjectsPage(BasePage):
             self.show_message(f"No execution history for '{project['name']}'", "info")
             return
 
-        # Format the statistics message
-        message = f"Statistics for '{project['name']}':\n\n"
-        message += f"Total runs: {stats['total_runs']}\n"
-        message += f"Success rate: {stats['success_rate']:.1f}%\n"
-        message += f"Average duration: {stats['avg_duration']:.1f} seconds\n"
+        # Import and open the detailed history dialog
+        from components.script_history_dialog import ScriptHistoryDialog
 
-        if stats['last_success']:
-            message += f"\nLast successful run: {stats['last_success']}"
-        if stats['last_failure']:
-            message += f"\nLast failed run: {stats['last_failure']}"
+        try:
+            dialog = ScriptHistoryDialog(
+                parent=self,
+                script_name=project['name'],
+                history_manager=self.history_manager
+            )
 
-        self.show_message(message, "info")
+            # Wait for dialog to close (it's modal)
+            self.wait_window(dialog)
+
+        except Exception as e:
+            # Fallback to simple message if dialog fails
+            self.show_message(f"Error opening history dialog: {str(e)}", "error")
+
+            # Show basic stats as fallback
+            message = f"Statistics for '{project['name']}':\n\n"
+            message += f"Total runs: {stats['total_runs']}\n"
+            message += f"Success rate: {stats['success_rate']:.1f}%\n"
+            message += f"Average duration: {stats['avg_duration']:.1f} seconds\n"
+
+            if stats['last_success']:
+                message += f"\nLast successful run: {stats['last_success']}"
+            if stats['last_failure']:
+                message += f"\nLast failed run: {stats['last_failure']}"
+
+            self.show_message(message, "info")
 
     def clear_project_history(self, project: Dict[str, Any]):
         """Clear history for a specific project"""
