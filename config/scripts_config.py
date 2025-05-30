@@ -14,25 +14,6 @@ Add new scripts here to make them available in the dropdown
 # - configurable_paths: Dictionary of paths that can be configured
 
 AVAILABLE_SCRIPTS = {
-    # "Simulation": {
-    #     "path": None,  # None triggers simulation mode
-    #     "description": "Built-in simulation for testing",
-    #     "category": "Testing",
-    #     "tags": ["test", "simulation", "demo", "built-in"],
-    #     "parameters": {}
-    # },
-    #
-    # "Test Data Processor": {
-    #     "path": "scripts/test_data_processor.py",
-    #     "description": "Processes data and demonstrates log levels",
-    #     "category": "Data Processing",
-    #     "tags": ["data", "processing", "csv", "logs", "test"],
-    #     "parameters": {
-    #         "batch_size": 100,
-    #         "output_format": "json"
-    #     }
-    # },
-
     "Schneider Attachments Saver": {
         "path": "scripts/schneider_save_attachments.py",
         "description": "Saves email attachments from selected Outlook emails to Schneider import bills folder",
@@ -128,17 +109,6 @@ AVAILABLE_SCRIPTS = {
         }
     }
 
-    # "File Organizer": {
-    #     "path": "scripts/file_organizer.py",
-    #     "description": "Organizes files into categories",
-    #     "category": "File Operations",
-    #     "tags": ["files", "organization", "sorting", "cleanup", "automation"],
-    #     "parameters": {
-    #         "source_dir": "./",
-    #         "create_backup": True
-    #     }
-    # },
-
     # Add new scripts here:
     # "CSV Report Generator": {
     #     "path": "scripts/csv_report_gen.py",
@@ -196,5 +166,5 @@ TAG_COLORS = {
     "default": "#757575"    # Grey
 }
 
-# Default script to select on startup
-DEFAULT_SCRIPT = "Simulation"
+# No default script - user must select one
+DEFAULT_SCRIPT = ""
