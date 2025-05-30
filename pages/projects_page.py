@@ -550,21 +550,42 @@ class ProjectsPage(BasePage):
             self.show_message(f"Failed to clear history for '{project['name']}'", "error")
 
     def open_project_sop(self, project: Dict[str, Any]):
-        """Navigate to the SOPs page and highlight the relevant SOP"""
-        if project.get('sop_id'):
-            # Set state to pass the SOP ID
-            self.set_state('highlight_sop_id', project['sop_id'])
+        """Open the SOP for this project directly in browser"""
+        if not project.get('sop_id'):
+            self.show_message("No SOP associated with this script", "warning")
+            return
 
-            # Switch to SOPs page
-            self.set_state('current_page', 'SOPs')
+        # Import the SOP data to find the matching SOP
+        try:
+            from config.sops_config import SOPS_DATA
 
-            # Publish event
-            self.publish_event('project.sop_requested', {
-                'project': project['name'],
-                'sop_id': project['sop_id']
-            })
+            # Find the SOP that matches this project's sop_id
+            matching_sop = None
+            for sop in SOPS_DATA:
+                if sop.get('id') == project['sop_id']:
+                    matching_sop = sop
+                    break
 
-            self.show_message(f"Opening SOP for {project['name']}", "info")
+            if matching_sop:
+                # Open the SOP link directly in browser (same as SOPs page does)
+                import webbrowser
+                try:
+                    webbrowser.open(matching_sop['link'])
+                    self.publish_event('sop.opened', {
+                        'sop_id': matching_sop['id'],
+                        'title': matching_sop['title'],
+                        'source': 'projects_page'
+                    })
+                    self.show_message(f"Opening SOP: {matching_sop['title']}", "success")
+                except Exception as e:
+                    self.show_message(f"Failed to open SOP: {str(e)}", "error")
+            else:
+                self.show_message(f"SOP with ID '{project['sop_id']}' not found", "error")
+
+        except ImportError:
+            self.show_message("SOP configuration not available", "error")
+        except Exception as e:
+            self.show_message(f"Error accessing SOP data: {str(e)}", "error")
 
     def on_activate(self):
         """Called when the Projects page becomes active"""
